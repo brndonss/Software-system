@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   const { data: authData, error: authError } = await admin.auth.admin.createUser({
     email: parsed.data.email.toLowerCase(),
     password: parsed.data.password,
-    email_confirm: false,
+    email_confirm: true,
   });
   if (authError || !authData.user) return jsonError(authError?.message ?? "Unable to create account", 400, "registration_failed");
 
