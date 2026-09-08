@@ -41,10 +41,133 @@ function WorkspacePreview() { return <div className="ns-preview-wrap"><div class
 
 function BuilderVisual() { return <div className="ns-builder-visual"><div className="ns-terminal"><div className="ns-terminal-top"><span>northstar / system-builder</span><i /><i /><i /></div><div className="ns-terminal-body"><p><span>INPUT</span> business_context</p><blockquote>8-person landscaping company.<br />Need more leads. Follow-ups get lost.<br />Scheduling takes too much time.</blockquote>{["ANALYZING BUSINESS", "IDENTIFYING PROBLEMS", "SELECTING MODULES", "DESIGNING WORKFLOWS", "VALIDATING SYSTEM"].map((stage, index) => <div className={`ns-terminal-stage ${index < 3 ? "done" : index === 3 ? "current" : ""}`} key={stage}><i>{index < 3 ? "✓" : index === 3 ? "..." : ""}</i><span>{stage}</span><small>{index < 3 ? "COMPLETE" : index === 3 ? "IN PROGRESS" : "QUEUED"}</small></div>)}<div className="ns-ready"><span>✓</span><b>WORKSPACE READY</b><small>7 modules · 4 workflows · validated</small></div></div></div><div className="ns-generated"><p className="ns-kicker">GENERATED WORKSPACE</p>{generatedModules.map((module, index) => <span key={module}><i>{String(index + 1).padStart(2, "0")}</i>{module}</span>)}</div></div>; }
 
+const passwordRequirements = [
+  { label: "12+ characters", test: (value: string) => value.length >= 12 },
+  { label: "Uppercase letter", test: (value: string) => /[A-Z]/.test(value) },
+  { label: "Number", test: (value: string) => /\d/.test(value) },
+  { label: "Symbol", test: (value: string) => /[^A-Za-z0-9]/.test(value) },
+];
+
 function AuthModal({ mode, setMode, onClose }: { mode: "sign-in" | "create"; setMode: (mode: "sign-in" | "create") => void; onClose: () => void }) {
-  const router = useRouter(); const [email, setEmail] = useState(""); const [password, setPassword] = useState(""); const [businessName, setBusinessName] = useState(""); const [error, setError] = useState(""); const [loading, setLoading] = useState(false);
-  async function submit(event: React.FormEvent<HTMLFormElement>) { event.preventDefault(); setError(""); setLoading(true); try { if (mode === "create") { const registration = await fetch("/api/v1/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password, businessName }) }); if (!registration.ok) throw new Error(await responseMessage(registration, "Unable to create account")); } const login = await fetch("/api/v1/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) }); if (!login.ok) throw new Error(await responseMessage(login, "Unable to sign in")); const onboarding = await fetch("/api/v1/onboarding"); if (onboarding.ok) { const data = await onboarding.json(); if (data.onboarding?.status === "completed") { const active = await fetch("/api/v1/system-configurations/active"); router.push(active.ok ? "/dashboard" : "/onboarding"); return; } } router.push("/onboarding"); } catch (caught) { setError(caught instanceof Error ? caught.message : "Something went wrong"); } finally { setLoading(false); } }
-  return <div className="modal-backdrop" onClick={onClose}><div className="auth-modal" onClick={(event) => event.stopPropagation()}><button className="close" onClick={onClose}>×</button><span className="modal-mark">N</span><p className="eyebrow">Welcome to northstar</p><h2>{mode === "sign-in" ? "Sign in to your workspace" : "Create your workspace"}</h2><p className="modal-copy">{mode === "sign-in" ? "Pick up where you left off." : "Set up your business workspace in a few minutes."}</p><form onSubmit={submit}><label>Email address<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@company.com" /></label>{mode === "create" && <label>Business name<input required type="text" value={businessName} onChange={(event) => setBusinessName(event.target.value)} placeholder="Your business" /></label>}<label>Password<input required minLength={8} type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="********" /></label>{error && <p className="form-error">{error}</p>}<button className="primary wide" disabled={loading}>{loading ? "Working..." : mode === "sign-in" ? "Continue" : "Create workspace"}<span>→</span></button></form><p className="switch-auth">{mode === "sign-in" ? "New to northstar?" : "Already have an account?"} <button onClick={() => setMode(mode === "sign-in" ? "create" : "sign-in")}>{mode === "sign-in" ? "Create an account" : "Sign in"}</button></p></div></div>;
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [businessName, setBusinessName] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [forgotPassword, setForgotPassword] = useState(false);
+
+  const passwordChecks = passwordRequirements.map((requirement) => ({
+    ...requirement,
+    valid: requirement.test(password),
+  }));
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (mode === "create") {
+      if (!businessName.trim()) {
+        setError("Tell us your business name so we can create your workspace.");
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError("Passwords do not match.");
+        return;
+      }
+      const invalid = passwordChecks.some((requirement) => !requirement.valid);
+      if (invalid) {
+        setError("Use 12+ characters with an uppercase letter, number, and symbol.");
+        return;
+      }
+    }
+
+    setLoading(true);
+
+    try {
+      if (mode === "create") {
+        const registration = await fetch("/api/v1/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password, confirmPassword, businessName }),
+        });
+
+        const registrationData = await registration.json();
+        if (!registration.ok) {
+          throw new Error(registrationData.error?.message ?? "Unable to create account");
+        }
+
+        setSuccess("Your workspace is ready. Redirecting you now…");
+      }
+
+      const login = await fetch("/api/v1/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, rememberMe }),
+      });
+
+      const loginData = await login.json();
+      if (!login.ok) {
+        throw new Error(loginData.error?.message ?? "Unable to sign in");
+      }
+
+      const onboarding = await fetch("/api/v1/onboarding");
+      if (onboarding.ok) {
+        const onboardingData = await onboarding.json();
+        if (onboardingData.onboarding?.status === "completed") {
+          onClose();
+          router.push("/dashboard");
+          return;
+        }
+      }
+
+      onClose();
+      router.push("/onboarding");
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : "Something went wrong";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handlePasswordReset(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (!email.trim()) {
+      setError("Enter the email address for your Northstar account.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/v1/auth/reset-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error?.message ?? "Unable to send password reset email");
+      }
+      setSuccess("We sent a password reset link to your email.");
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : "Unable to send the reset email";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return <div className="modal-backdrop" onClick={onClose}><div className="auth-modal" onClick={(event) => event.stopPropagation()}><button className="close" onClick={onClose}>×</button><span className="modal-mark">N</span><p className="eyebrow">Welcome to northstar</p><h2>{forgotPassword ? "Reset your password" : mode === "sign-in" ? "Sign in to your workspace" : "Create your workspace"}</h2><p className="modal-copy">{forgotPassword ? "We’ll send a secure reset link to the email address on file." : mode === "sign-in" ? "Pick up where you left off." : "Set up your business workspace in a few minutes."}</p>{forgotPassword ? <form onSubmit={handlePasswordReset}><label>Email address<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@company.com" autoComplete="email" /></label>{error && <p className="form-error">{error}</p>}{success && <p className="form-success">{success}</p>}<button className="primary wide" type="submit" disabled={loading}>{loading ? "Sending reset link…" : "Send reset link"}<span>→</span></button><p className="switch-auth"><button type="button" onClick={() => { setForgotPassword(false); setError(""); setSuccess(""); }}>Back to sign in</button></p></form> : <form onSubmit={submit}><label>Email address<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@company.com" autoComplete="email" /></label>{mode === "create" && <label>Business name<input required type="text" value={businessName} onChange={(event) => setBusinessName(event.target.value)} placeholder="Your business" autoComplete="organization" /></label>}<label>Password<div className="password-field"><input required type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="********" autoComplete={mode === "sign-in" ? "current-password" : "new-password"} /><button type="button" className="password-toggle" onClick={() => setShowPassword((current) => !current)}>{showPassword ? "Hide" : "Show"}</button></div></label>{mode === "create" && <label>Confirm password<input required type={showPassword ? "text" : "password"} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Confirm your password" autoComplete="new-password" /></label>}{mode === "sign-in" && <div className="auth-meta-row"><label className="checkbox-row"><input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} /><span>Remember me</span></label><button type="button" className="link-button" onClick={() => setForgotPassword(true)}>Forgot password?</button></div>}{mode === "create" && <ul className="password-checklist">{passwordChecks.map((requirement) => <li key={requirement.label} className={requirement.valid ? "pass" : ""}>{requirement.valid ? "✓" : "○"} {requirement.label}</li>)}</ul>}{error && <p className="form-error">{error}</p>}{success && <p className="form-success">{success}</p>}<button className="primary wide" type="submit" disabled={loading}>{loading ? (mode === "create" ? "Creating workspace…" : "Signing in…") : mode === "sign-in" ? "Continue" : "Create workspace"}<span>→</span></button></form>}{!forgotPassword && <p className="switch-auth">{mode === "sign-in" ? "New to northstar?" : "Already have an account?"} <button type="button" onClick={() => { setMode(mode === "sign-in" ? "create" : "sign-in"); setError(""); setSuccess(""); }}>{mode === "sign-in" ? "Create an account" : "Sign in"}</button></p>}</div></div>;
 }
 
 async function responseMessage(response: Response, fallback: string) { const body = await response.text(); if (!body) return `${fallback}. Check the server configuration.`; try { return JSON.parse(body).error?.message ?? fallback; } catch { return fallback; } }
