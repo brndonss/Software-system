@@ -2,6 +2,7 @@
 
 :root { --ink: #1e2423; --muted: #7b8580; --line: #e6e9e5; --paper: #f7f8f5; --white: #fff; --coral: #d65f4d; --coral-dark: #b94b3b; --mint: #4a9c82; }
 * { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
 body { margin: 0; background: var(--paper); color: var(--ink); font-family: Manrope, sans-serif; }
 button, input { font: inherit; }
 button { cursor: pointer; border: 0; }

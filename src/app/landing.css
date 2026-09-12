@@ -84,3 +84,95 @@
 @media (max-width: 900px) { .ns-container { width: min(100% - 42px, 720px); }.ns-header { grid-template-columns: 1fr auto; padding-inline: 21px; }.ns-nav, .ns-header-actions { display: none; }.ns-menu { display: block; justify-self: end; }.ns-header.is-open .ns-nav { position: absolute; top: 75px; left: 0; right: 0; display: grid; gap: 0; padding: 10px 21px 17px; border-bottom: 1px solid var(--ns-line); background: rgba(251,252,249,.98); }.ns-header.is-open .ns-nav button { padding: 13px 0; text-align: left; }.ns-header.is-open .ns-header-actions { position: absolute; top: 294px; left: 0; right: 0; display: flex; justify-content: flex-start; padding: 17px 21px 21px; border-bottom: 1px solid var(--ns-line); background: rgba(251,252,249,.98); }.ns-hero { grid-template-columns: 1fr; gap: 65px; min-height: auto; padding-top: 72px; }.ns-hero-copy { max-width: 570px; }.ns-preview-wrap { padding-left: 0; }.ns-builder-grid, .ns-ad-grid { grid-template-columns: 1fr; gap: 65px; }.ns-split-heading { grid-template-columns: 1fr; gap: 20px; }.ns-os-window { grid-template-columns: 125px 1fr; }.ns-generated { right: 0; }.ns-stage { grid-template-columns: 56px 1fr 28px; }.ns-stage p { grid-column: 2; }.ns-workflow { grid-template-columns: 1fr; }.ns-workflow-tabs { display: grid; grid-template-columns: repeat(5,1fr); border-right: 0; border-bottom: 1px solid var(--ns-line); }.ns-workflow-tabs button { display: block; padding: 13px 6px; font-size: 9px; }.ns-workflow-tabs button span { display: block; margin-bottom: 6px; }.ns-workflow-detail { min-height: 300px; }.ns-footer { grid-template-columns: 1fr; }.ns-footer-links { max-width: 500px; } }
 @media (max-width: 600px) { .ns-container { width: calc(100% - 36px); }.ns-header { min-height: 65px; }.ns-header.is-open .ns-nav { top: 64px; }.ns-header.is-open .ns-header-actions { top: 284px; }.ns-logo { font-size: 11px; }.ns-logo span { width: 25px; height: 25px; }.ns-hero { padding-top: 57px; padding-bottom: 84px; }.ns-hero h1 { font-size: clamp(48px, 14vw, 70px); }.ns-hero-lede { font-size: 13px; }.ns-hero-actions { flex-direction: column; align-items: flex-start; gap: 20px; }.ns-proof { margin-top: 48px; }.ns-preview { grid-template-columns: 71px 1fr; transform: none; }.ns-preview-nav { padding: 12px 7px; font-size: 7px; }.ns-preview-nav span:not(.ns-os-brand) { padding: 7px 4px; }.ns-preview-main { padding: 17px 12px; }.ns-preview-heading h3 { font-size: 14px; }.ns-preview-stats { gap: 4px; margin-top: 18px; }.ns-preview-stats > div { padding: 8px; }.ns-preview-stats b { font-size: 18px; }.ns-preview-lower { grid-template-columns: 1fr; }.ns-preview-activity { display: none; }.ns-float-status { right: -5px; top: -20px; font-size: 8px; }.ns-float-ai { left: -6px; bottom: -26px; }.ns-statement { padding: 104px 0 112px; text-align: left; }.ns-statement h2 { font-size: 39px; }.ns-section { padding: 96px 0; }.ns-section-intro h2, .ns-split-heading h2 { font-size: 39px; }.ns-stage-list { margin-top: 48px; }.ns-stage { grid-template-columns: 39px 1fr 20px; gap: 12px; padding: 22px 0; }.ns-stage h3 { font-size: 16px; }.ns-stage p { font-size: 11px; }.ns-input-quote { font-size: 11px; }.ns-builder-visual { padding-bottom: 65px; }.ns-terminal-body { padding: 16px; }.ns-terminal blockquote { font-size: 10px; }.ns-terminal-stage { grid-template-columns: 18px 1fr; font-size: 8px; }.ns-terminal-stage small { display: none; }.ns-ready { grid-template-columns: 20px 1fr; }.ns-ready small { grid-column: 2; }.ns-generated { right: 0; bottom: -45px; min-width: 200px; }.ns-industry-grid { grid-template-columns: 1fr; gap: 10px; margin-top: 45px; }.ns-industry { min-height: 270px; }.ns-workflow { margin-top: 45px; }.ns-workflow-tabs { grid-template-columns: repeat(5, 1fr); overflow: hidden; }.ns-workflow-tabs button { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.ns-workflow-detail { padding: 28px 22px; }.ns-workflow-detail h3 { font-size: 30px; }.ns-flow-line { margin: 35px 0 23px; }.ns-os-window { grid-template-columns: 1fr; }.ns-os-sidebar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; padding: 9px; }.ns-os-brand { display: none; }.ns-os-sidebar span { padding: 8px 5px; text-align: center; }.ns-os-main { padding: 13px; }.ns-os-top span { font-size: 15px; }.ns-os-columns { grid-template-columns: 1fr; }.ns-assistant { margin-top: 0; }.ns-campaign { padding: 20px; }.ns-campaign h3 { font-size: 26px; margin-top: 30px; }.ns-campaign-data { grid-template-columns: 1fr; gap: 14px; }.ns-philosophy { padding: 115px 0 126px; }.ns-philosophy h2 { font-size: 44px; }.ns-final-cta { padding: 98px 0 110px; }.ns-final-cta h2 { font-size: 47px; }.ns-footer-links { grid-template-columns: repeat(2,1fr); gap: 36px 20px; }.ns-footer-links div:last-child { grid-column: 1/-1; }.ns-footer { padding-bottom: 26px; } }
 @media (prefers-reduced-motion: reduce) { .ns-landing *, .ns-landing *::before, .ns-landing *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+
+/* Dark landing system */
+.ns-landing {
+	--ns-ink: #f3f5ef;
+	--ns-muted: #969d94;
+	--ns-line: #292e2a;
+	--ns-paper: #090b0a;
+	--ns-white: #111512;
+	--ns-accent: #b9f36d;
+	--ns-accent-deep: #b9f36d;
+	--ns-green: #8bcf70;
+	--ns-blue: #83b9d2;
+	background: var(--ns-paper);
+	color: var(--ns-ink);
+}
+.ns-landing button:focus-visible { outline-color: var(--ns-accent); }
+.ns-header { border-bottom-color: rgba(255,255,255,.06); background: rgba(9,11,10,.78); backdrop-filter: blur(18px); }
+.ns-header:hover { border-bottom-color: var(--ns-line); background: rgba(14,17,15,.94); }
+.ns-logo, .ns-nav button, .ns-signin { color: var(--ns-ink); }
+.ns-logo span, .ns-os-brand { background: var(--ns-accent); color: #14200e; }
+.ns-nav button, .ns-signin { color: #a6ada3; }
+.ns-nav button:hover, .ns-signin:hover { color: var(--ns-accent); }
+.ns-button-dark { background: #f3f5ef; color: #121611; }
+.ns-button-dark:hover { background: var(--ns-accent); }
+.ns-button-accent { background: var(--ns-accent); color: #121b0e; box-shadow: 0 7px 24px rgba(185,243,109,.16); }
+.ns-button-accent:hover { background: #d0ff8d; }
+.ns-hero, .ns-statement, .ns-section, .ns-philosophy, .ns-final-cta { position: relative; }
+.ns-hero::before { position: absolute; z-index: 0; inset: 0; background-image: linear-gradient(rgba(255,255,255,.027) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.027) 1px, transparent 1px); background-size: 78px 78px; mask-image: linear-gradient(to bottom, #000, transparent 85%); content: ''; pointer-events: none; }
+.ns-hero-copy, .ns-preview-wrap { position: relative; z-index: 1; }
+.ns-kicker { color: var(--ns-accent-deep); }
+.ns-hero h1, .ns-statement h2, .ns-section-intro h2, .ns-split-heading h2, .ns-philosophy h2, .ns-final-cta h2 { color: var(--ns-ink); }
+.ns-hero h1 em, .ns-section h2 em, .ns-operating-band h2 em, .ns-philosophy h2 em { color: var(--ns-accent); }
+.ns-hero-lede, .ns-section-intro > p:last-child, .ns-split-heading > p, .ns-statement > p:last-child { color: var(--ns-muted); }
+.ns-proof { color: #7f887e; }
+.ns-proof b { color: var(--ns-ink); }
+.ns-proof-mark { border-color: var(--ns-line); color: var(--ns-accent); }
+.ns-preview-orbit { border-color: #29372c; }
+.ns-preview-orbit.orbit-two { border-color: #3a302a; }
+.ns-preview { border-color: #303832; background: #121613; box-shadow: 0 25px 75px rgba(0,0,0,.48), 0 0 0 8px rgba(255,255,255,.015); }
+.ns-preview-nav { border-right-color: #293029; background: #171c18; color: #758075; }
+.ns-preview-nav .active { background: #273723; color: var(--ns-accent); }
+.ns-preview-main { color: var(--ns-ink); }
+.ns-preview-heading small, .ns-preview-heading h3, .ns-chart-title, .ns-preview-activity p { color: var(--ns-ink); }
+.ns-preview-stats > div, .ns-os-metrics > div, .ns-preview-chart, .ns-preview-activity { border-color: #2c342e; background: #181d19; }
+.ns-preview-stats small, .ns-os-metrics small, .ns-chart-title span, .ns-preview-activity small { color: #778177; }
+.ns-preview-stats b, .ns-os-metrics b { color: #f3f5ef; }
+.ns-preview-stats span, .ns-os-metrics span { color: var(--ns-accent); }
+.ns-line-chart { background: repeating-linear-gradient(to bottom, transparent 0 34px, #283029 35px 36px); }
+.ns-line-chart path { stroke: var(--ns-accent); }
+.ns-float-card { border-color: #303a32; background: rgba(22,28,23,.96); color: var(--ns-ink); box-shadow: 0 10px 25px rgba(0,0,0,.32); }
+.ns-float-card small { color: #879287; }
+.ns-float-ai > span { color: var(--ns-accent); }
+.ns-float-status i { background: var(--ns-accent); box-shadow: 0 0 0 4px #2c4028; }
+.ns-statement { border-top: 1px solid var(--ns-line); }
+.ns-stage-list, .ns-stage { border-color: var(--ns-line); }
+.ns-stage h3 { color: var(--ns-ink); }
+.ns-stage p { color: var(--ns-muted); }
+.ns-stage:hover { color: var(--ns-accent); background: rgba(185,243,109,.025); }
+.ns-builder-band, .ns-ad-band { border-color: var(--ns-line); background: #111512; }
+.ns-input-quote { color: #9aa499; border-color: var(--ns-accent); }
+.ns-terminal { background: #111613; box-shadow: 0 20px 50px rgba(0,0,0,.36); }
+.ns-terminal-top { border-color: #303a32; color: #859389; }
+.ns-terminal-stage.current { color: #f3f5ef; }
+.ns-terminal-stage.current i { border-color: var(--ns-accent); color: var(--ns-accent); }
+.ns-ready { background: #203624; color: #d9f0d0; }
+.ns-ready > span { background: var(--ns-accent); color: #16210f; }
+.ns-generated { border-color: #303a32; background: #171c18; box-shadow: 0 13px 30px rgba(0,0,0,.34); }
+.ns-generated span { color: #b8c2b8; }
+.ns-industry { border-color: #344038; background: #18221b; }
+.ns-blue { background: #172129; }.ns-sand { background: #28231b; }
+.ns-industry-top, .ns-module-list span { color: #87958a; }
+.ns-industry h3 { color: var(--ns-ink); }
+.ns-module-list { border-color: #3a463c; }
+.ns-workflow { border-color: #303832; background: #121713; }
+.ns-workflow-tabs { border-color: #303832; background: #171c18; }
+.ns-workflow-tabs button { color: #899388; }
+.ns-workflow-tabs button.active { background: var(--ns-accent); color: #17200f; }
+.ns-workflow-tabs button.active span { color: #344a25; }
+.ns-workflow-detail h3 { color: var(--ns-ink); }
+.ns-workflow-detail > div:first-child > p:last-child { color: var(--ns-muted); }
+.ns-flow-line span { background: #343d35; }.ns-flow-line span.complete, .ns-flow-line span.complete::after { background: var(--ns-accent); }
+.ns-workflow-next { color: #859087; }.ns-workflow-next b { color: var(--ns-ink); }.ns-workflow-next span { color: var(--ns-accent); }
+.ns-operating-band { background: #111714; }
+.ns-os-window { border-color: #38453b; background: #171d19; color: var(--ns-ink); box-shadow: 0 23px 60px rgba(0,0,0,.34); }
+.ns-os-sidebar { border-color: #303a32; background: #151b17; color: #839087; }.ns-os-sidebar span.active { background: #293c29; color: var(--ns-accent); }
+.ns-os-top span { color: var(--ns-ink); }.ns-os-top small { color: var(--ns-accent); }
+.ns-os-chart { border-color: #303a32; background: #181e19; }.ns-bars { border-color: #303a32; }.ns-bars i { background: #668d70; }.ns-bars i:nth-child(3n) { background: var(--ns-accent); }
+.ns-assistant { border-color: #3c523e; background: #1c2b1f; }.ns-assistant-head b, .ns-assistant > p { color: var(--ns-ink); }.ns-assistant-answer { color: #a5b6a4; }.ns-assistant button { background: var(--ns-accent); color: #17220f; }
+.ns-availability, .ns-final-cta, .ns-footer { border-color: var(--ns-line); }.ns-availability p { color: var(--ns-muted); }.ns-status-dot { background: var(--ns-accent); }.ns-status-dot.outline { border-color: var(--ns-accent); background: transparent; }
+.ns-campaign { border-color: #3a4038; background: #171b17; box-shadow: 0 18px 35px rgba(0,0,0,.25); }.ns-campaign h3, .ns-campaign-data strong { color: var(--ns-ink); }.ns-campaign-data { border-color: var(--ns-line); }.ns-ad-copy p { color: #a1aaa0; }
+.ns-footer { color: var(--ns-ink); }.ns-footer-brand p, .ns-footer-links button, .ns-footer > small { color: #7e897f; }.ns-footer-links b { color: var(--ns-ink); }
+@media (max-width: 900px) { .ns-header.is-open .ns-nav, .ns-header.is-open .ns-header-actions { border-color: var(--ns-line); background: rgba(14,17,15,.98); } }
