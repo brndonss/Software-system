@@ -12,8 +12,6 @@ const draftSchema = z.object({
   suggestedBudget: z.string().trim().max(200).optional(),
   landingPageConcept: z.string().trim().max(2000).optional(),
   trackingPlan: z.string().trim().max(2000).optional(),
-  status: z.enum(["draft", "pending_approval", "approved", "rejected", "published"]).default("draft"),
-  approvalStatus: z.enum(["pending", "approved", "rejected", "paused", "completed", "failed"]).default("pending"),
 });
 
 export async function GET() {
@@ -45,8 +43,8 @@ export async function POST(request: Request) {
     suggested_budget: parsed.data.suggestedBudget ?? null,
     landing_page_concept: parsed.data.landingPageConcept ?? null,
     tracking_plan: parsed.data.trackingPlan ?? null,
-    status: parsed.data.status,
-    approval_status: parsed.data.approvalStatus,
+    status: "draft",
+    approval_status: "pending",
   }).select("id, customer_id, title, objective, target_audience, ad_copy, creative_concept, suggested_budget, landing_page_concept, tracking_plan, status, approval_status, created_at, updated_at").single();
 
   if (error || !data) return jsonError("Unable to create campaign draft", 500, "campaign_create_failed");

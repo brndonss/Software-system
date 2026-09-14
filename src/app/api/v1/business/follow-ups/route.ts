@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { jsonError } from "@/lib/api";
-import { resolveCustomerIdFromSession } from "@/lib/business/module-helpers";
+import { createActivityLog, resolveCustomerIdFromSession } from "@/lib/business/module-helpers";
+import { validateFollowUpRelation } from "@/lib/business/operations-service";
 
 const followUpSchema = z.object({
   title: z.string().trim().min(1).max(200),
@@ -31,6 +32,9 @@ export async function POST(request: Request) {
   const parsed = followUpSchema.safeParse(body);
   if (!parsed.success) return jsonError("Please provide valid follow-up data", 400, "invalid_follow_up");
 
+  const relationError = await validateFollowUpRelation(resolved.supabase, resolved.customerId, parsed.data.relatedType, parsed.data.relatedId ?? null);
+  if (relationError) return jsonError(relationError, 400, "invalid_related_record");
+
   const { data, error } = await resolved.supabase.from("business_follow_ups").insert({
     customer_id: resolved.customerId,
     related_type: parsed.data.relatedType,
@@ -42,5 +46,8 @@ export async function POST(request: Request) {
   }).select("id, customer_id, related_type, related_id, title, status, scheduled_for, notes, created_at, updated_at").single();
 
   if (error || !data) return jsonError("Unable to create follow-up", 500, "follow_up_create_failed");
+
+  const activityError = await createActivityLog(resolved.supabase, resolved.customerId, "follow_up_management", "follow_up_created", `Follow-up created: ${parsed.data.title}`);
+  if (activityError) return jsonError("Follow-up created but activity logging failed", 500, "activity_log_failed");
   return NextResponse.json({ followUp: data }, { status: 201 });
 }

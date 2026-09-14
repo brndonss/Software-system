@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { jsonError } from "@/lib/api";
-import { resolveCustomerIdFromSession } from "@/lib/business/module-helpers";
+import { createActivityLog, resolveCustomerIdFromSession } from "@/lib/business/module-helpers";
 
 const leadSchema = z.object({
   leadName: z.string().trim().min(1).max(200),
@@ -29,8 +29,7 @@ export async function POST(request: Request) {
   const parsed = leadSchema.safeParse(body);
   if (!parsed.success) return jsonError("Please provide valid lead data", 400, "invalid_lead");
 
-  const admin = resolved.supabase;
-  const { data, error } = await admin.from("business_leads").insert({
+  const { data, error } = await resolved.supabase.from("business_leads").insert({
     customer_id: resolved.customerId,
     lead_name: parsed.data.leadName,
     lead_source: parsed.data.leadSource,
@@ -40,14 +39,8 @@ export async function POST(request: Request) {
 
   if (error || !data) return jsonError("Unable to create lead", 500, "lead_create_failed");
 
-  await admin.from("business_activity_log").insert({
-    customer_id: resolved.customerId,
-    automation: "lead_follow_up",
-    action: "lead_created",
-    status: "completed",
-    result_summary: `Lead created: ${parsed.data.leadName}`,
-    approval_status: "approved",
-  });
+  const activityError = await createActivityLog(resolved.supabase, resolved.customerId, "lead_follow_up", "lead_created", `Lead created: ${parsed.data.leadName}`);
+  if (activityError) return jsonError("Lead created but activity logging failed", 500, "activity_log_failed");
 
   return NextResponse.json({ lead: data }, { status: 201 });
 }

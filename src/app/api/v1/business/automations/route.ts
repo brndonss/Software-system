@@ -9,9 +9,6 @@ const automationSchema = z.object({
   description: z.string().trim().max(2000).optional(),
   problem: z.string().trim().max(2000).optional(),
   workflow: z.string().trim().max(2000).optional(),
-  enabled: z.boolean().default(false),
-  status: z.enum(["recommended", "active", "paused", "rejected"]).default("recommended"),
-  approvalStatus: z.enum(["pending", "approved", "rejected", "paused", "completed", "failed"]).default("pending"),
 });
 
 export async function GET() {
@@ -40,9 +37,9 @@ export async function POST(request: Request) {
     description: parsed.data.description ?? null,
     problem: parsed.data.problem ?? null,
     workflow: parsed.data.workflow ?? null,
-    enabled: parsed.data.enabled,
-    status: parsed.data.status,
-    approval_status: parsed.data.approvalStatus,
+    enabled: false,
+    status: "recommended",
+    approval_status: "pending",
   }).select("id, customer_id, automation_key, title, description, problem, workflow, status, enabled, approval_status, created_at, updated_at").single();
 
   if (error || !data) return jsonError("Unable to create automation", 500, "automation_create_failed");

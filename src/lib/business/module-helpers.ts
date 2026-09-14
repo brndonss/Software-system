@@ -1,5 +1,5 @@
-import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export async function resolveCustomerIdFromSession() {
   const result = await requireUser();
@@ -13,7 +13,7 @@ export async function resolveCustomerIdFromSession() {
   return { customerId: profile.customer_id, supabase: result.supabase, user: result.user };
 }
 
-export async function createActivityLog(customerId: string, automation: string, action: string, resultSummary: string, status: "pending" | "completed" | "failed" | "paused" = "completed", approvalStatus: "pending" | "approved" | "rejected" | "paused" | "completed" | "failed" = "approved") {
-  const admin = createSupabaseAdminClient();
-  await admin.from("business_activity_log").insert({ customer_id: customerId, automation, action, status, result_summary: resultSummary, approval_status: approvalStatus });
+export async function createActivityLog(supabase: SupabaseClient, customerId: string, automation: string, action: string, resultSummary: string, status: "pending" | "completed" | "failed" | "paused" = "completed", approvalStatus: "pending" | "approved" | "rejected" | "paused" | "completed" | "failed" = "approved") {
+  const { error } = await supabase.from("business_activity_log").insert({ customer_id: customerId, automation, action, status, result_summary: resultSummary, approval_status: approvalStatus });
+  return error;
 }

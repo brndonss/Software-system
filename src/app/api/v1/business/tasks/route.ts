@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { jsonError } from "@/lib/api";
-import { resolveCustomerIdFromSession } from "@/lib/business/module-helpers";
+import { createActivityLog, resolveCustomerIdFromSession } from "@/lib/business/module-helpers";
 
 const taskSchema = z.object({
   title: z.string().trim().min(1).max(200),
@@ -38,5 +38,8 @@ export async function POST(request: Request) {
   }).select("id, customer_id, title, description, status, due_date, created_at, updated_at").single();
 
   if (error || !data) return jsonError("Unable to create task", 500, "task_create_failed");
+
+  const activityError = await createActivityLog(resolved.supabase, resolved.customerId, "task_management", "task_created", `Task created: ${parsed.data.title}`);
+  if (activityError) return jsonError("Task created but activity logging failed", 500, "activity_log_failed");
   return NextResponse.json({ task: data }, { status: 201 });
 }
