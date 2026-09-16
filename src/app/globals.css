@@ -1,4 +1,4 @@
-/* Dashboard-only dark presentation overrides. */
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');/* Dashboard-only dark presentation overrides. */
 .configured-shell { --dashboard-bg: #090b0a; --dashboard-surface: #111613; --dashboard-surface-raised: #171d19; --dashboard-line: #2b342d; --dashboard-text: #f1f5ed; --dashboard-muted: #8d998e; --dashboard-accent: #b9f36d; --dashboard-green: #8bcf70; background: radial-gradient(circle at 72% -10%, rgba(185,243,109,.1), transparent 33%), var(--dashboard-bg); color: var(--dashboard-text); padding: 0; }
 .configured-shell .configured-wrap { width: min(1180px, calc(100% - 72px)); max-width: none; padding: 28px 0 56px; }
 .configured-shell .configured-header { min-height: 58px; padding: 0 0 21px; border-color: var(--dashboard-line); }
@@ -32,8 +32,6 @@
 .configured-shell .empty-state { color: var(--dashboard-muted); }
 @media (max-width: 850px) { .configured-shell .configured-wrap { width: min(100% - 56px, 720px); padding-top: 22px; } .configured-shell .dashboard-grid { grid-template-columns: 1fr; } .configured-shell .sidebar-panel { order: -1; } }
 @media (max-width: 620px) { .configured-shell .configured-wrap { width: calc(100% - 36px); padding: 18px 0 38px; } .configured-shell .configured-header { min-height: 46px; padding-bottom: 16px; } .configured-shell .configured-label { font-size: 8px; } .configured-shell .configured-intro { padding: 48px 0 32px; } .configured-shell .configured-intro h1 { font-size: 41px; } .configured-shell .configured-modules { grid-template-columns: 1fr; } .configured-shell .configured-module { min-height: 145px; } .configured-shell .activity-row { align-items: flex-start; } .configured-shell .activity-row .status-pill { flex-shrink: 0; } }
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
-
 :root { --ink: #1e2423; --muted: #7b8580; --line: #e6e9e5; --paper: #f7f8f5; --white: #fff; --coral: #d65f4d; --coral-dark: #b94b3b; --mint: #4a9c82; }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
