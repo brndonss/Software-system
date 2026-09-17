@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
-const navItems = ["Product", "Solutions", "How It Works", "Resources"];
+const navItems = ["Solutions", "How It Works", "Resources"];
 const buildStages = [["01", "Tell us about your business", "The context behind the work."], ["02", "AI analyzes how you work", "Patterns, bottlenecks, opportunities."], ["03", "AI designs your software", "Only the tools your business needs."], ["04", "AI identifies repetitive work", "Workflows ready for your approval."], ["05", "Your system starts working", "A clearer way to move every day."]];
 const generatedModules = ["Customers", "Leads", "Jobs", "Appointments", "Tasks", "Follow-ups", "Analytics"];
 const industrySystems = [{ name: "Landscaping", modules: ["Customers", "Leads", "Jobs", "Appointments", "Tasks", "Follow-ups"], tone: "sage" }, { name: "Consulting", modules: ["Clients", "Projects", "Proposals", "Meetings", "Tasks", "Invoices"], tone: "blue" }, { name: "Home services", modules: ["Customers", "Leads", "Jobs", "Estimates", "Appointments", "Follow-ups"], tone: "sand" }];
@@ -17,7 +18,7 @@ export default function Home() {
   function goTo(id: string) { document.getElementById(id)?.scrollIntoView({ behavior: "smooth" }); setMenuOpen(false); setProductMenuOpen(false); }
   function navigateTo(item: string) { const sectionIds: Record<string, string> = { Product: "product", Solutions: "solutions", "How It Works": "how-it-works", Resources: "resources" }; goTo(sectionIds[item] ?? "top"); }
   return <main className="ns-landing">
-    <header className={`ns-header ${menuOpen ? "is-open" : ""}`}><button className="ns-logo" onClick={() => goTo("top")} aria-label="Northstar home"><span>N</span><b>NORTHSTAR</b></button><nav className="ns-nav" aria-label="Primary navigation"><div className="ns-product-nav"><button className={`ns-product-trigger ${productMenuOpen ? "is-active" : ""}`} aria-expanded={productMenuOpen} aria-controls="product-menu" onClick={() => setProductMenuOpen((current) => !current)}>Product <span aria-hidden="true">⌄</span></button>{productMenuOpen && <ProductMenu onNavigate={goTo} />}</div>{navItems.slice(1).map((item) => <button key={item} onClick={() => navigateTo(item)}>{item}</button>)}</nav><div className="ns-header-actions"><button className="ns-signin" onClick={() => openAuth("sign-in")}>Log in</button><button className="ns-button ns-button-dark" onClick={() => openAuth("create")}>Get Started <span>↗</span></button></div><button className="ns-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle navigation"><i /><i /></button></header>
+    <PublicNavigation menuOpen={menuOpen} setMenuOpen={setMenuOpen} productMenuOpen={productMenuOpen} setProductMenuOpen={setProductMenuOpen} onNavigate={goTo} onLogin={() => openAuth("sign-in")} onGetStarted={() => openAuth("create")} />
 
     <section id="top" className="ns-hero ns-container"><div className="ns-hero-copy"><p className="ns-kicker"><span /> AI BUSINESS OPERATING SYSTEM</p><h1>Your business.<br /><em>Your software.</em><br />Built by AI.</h1><p className="ns-hero-lede">Northstar learns how your business works, builds the software you need, and helps automate the work that keeps everything moving.</p><div className="ns-hero-actions"><button className="ns-button ns-button-accent" onClick={() => openAuth("create")}>Build My Business System <span>↗</span></button><button className="ns-text-button" onClick={() => goTo("how-it-works")}>See How It Works <span>↓</span></button></div><div className="ns-proof"><span className="ns-proof-mark">✦</span><span>Designed around your business<br /><b>Not the other way around.</b></span></div></div><WorkspacePreview /></section>
     <section className="ns-statement ns-container"><p className="ns-kicker">THE SOFTWARE PROBLEM</p><h2>Stop forcing your business into software that wasn&apos;t built for you.</h2><p>Northstar builds around the way you actually work.</p></section>
@@ -41,8 +42,12 @@ export default function Home() {
   </main>;
 }
 
+export function PublicNavigation({ menuOpen, setMenuOpen, productMenuOpen, setProductMenuOpen, onNavigate, onLogin, onGetStarted }: { menuOpen: boolean; setMenuOpen: (open: boolean) => void; productMenuOpen: boolean; setProductMenuOpen: (open: boolean) => void; onNavigate: (id: string) => void; onLogin: () => void; onGetStarted: () => void }) {
+  return <header className={`ns-header ${menuOpen ? "is-open" : ""}`}><Link className="ns-logo" href="/" aria-label="Home"><span>N</span><b>NORTHSTAR</b></Link><nav className="ns-nav" aria-label="Primary navigation"><div className="ns-product-nav"><button className={`ns-product-trigger ${productMenuOpen ? "is-active" : ""}`} aria-expanded={productMenuOpen} aria-controls="product-menu" onClick={() => setProductMenuOpen(!productMenuOpen)}>Platform <span aria-hidden="true">⌄</span></button>{productMenuOpen && <ProductMenu onNavigate={onNavigate} />}</div>{navItems.map((item) => <button key={item} onClick={() => onNavigate(item === "How It Works" ? "how-it-works" : item.toLowerCase())}>{item}</button>)}</nav><div className="ns-header-actions"><button className="ns-signin" onClick={onLogin}>Log in</button><button className="ns-button ns-button-dark" onClick={onGetStarted}>Get Started <span>↗</span></button></div><button className="ns-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle navigation"><i /><i /></button></header>;
+}
+
 function ProductMenu({ onNavigate }: { onNavigate: (id: string) => void }) {
-  return <div id="product-menu" className="ns-product-menu" role="region" aria-label="Product capabilities"><div className="ns-product-columns">{productMenuGroups.map((group) => <div className="ns-product-group" key={group.label}><p>{group.label}</p>{group.items.map((item) => <button key={item.title} onClick={() => onNavigate(item.target)}><span><b>{item.title}</b><small>{item.detail}</small></span><i aria-hidden="true">↗</i></button>)}</div>)}</div><div className="ns-product-preview"><p>BUILT AROUND YOUR BUSINESS</p><div className="ns-product-preview-window"><span>WORKSPACE / OVERVIEW</span><b>Customer growth</b><div><i /><i /><i /><i /><i /><i /></div></div><small>One system for the work that keeps moving.</small></div></div>;
+  return <div id="product-menu" className="ns-product-menu" role="region" aria-label="Platform capabilities"><div className="ns-product-columns">{productMenuGroups.map((group) => <div className="ns-product-group" key={group.label}><p>{group.label}</p>{group.items.map((item) => item.title === "Business System" ? <Link href="/platform/system" key={item.title} onClick={() => onNavigate("")}><span><b>{item.title}</b><small>{item.detail}</small></span><i aria-hidden="true">↗</i></Link> : <button key={item.title} onClick={() => onNavigate(item.target)}><span><b>{item.title}</b><small>{item.detail}</small></span><i aria-hidden="true">↗</i></button>)}</div>)}</div><div className="ns-product-preview"><p>BUILT AROUND YOUR BUSINESS</p><div className="ns-product-preview-window"><span>WORKSPACE / OVERVIEW</span><b>Customer growth</b><div><i /><i /><i /><i /><i /><i /></div></div><small>One system for the work that keeps moving.</small></div></div>;
 }
 
 function ProductDemoVideo() {
@@ -60,7 +65,7 @@ const passwordRequirements = [
   { label: "Symbol", test: (value: string) => /[^A-Za-z0-9]/.test(value) },
 ];
 
-function AuthModal({ mode, setMode, onClose }: { mode: "sign-in" | "create"; setMode: (mode: "sign-in" | "create") => void; onClose: () => void }) {
+export function AuthModal({ mode, setMode, onClose }: { mode: "sign-in" | "create"; setMode: (mode: "sign-in" | "create") => void; onClose: () => void }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
