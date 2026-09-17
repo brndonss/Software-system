@@ -266,5 +266,6 @@
 .ns-product-group button b, .ns-product-group a b { color: #f3f3f1; font: 500 14px 'Space Grotesk', sans-serif; letter-spacing: -.02em; }
 .ns-product-group button i, .ns-product-group a i { color: #666; transition: color .2s ease, transform .2s ease; }
 .ns-product-group button:hover i, .ns-product-group button:focus-visible i, .ns-product-group a:hover i, .ns-product-group a:focus-visible i { color: #b9f36d; transform: translate(2px, -2px); }
+.ns-product-coming-soon { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; padding: 12px 10px; color: #f3f3f1; }.ns-product-coming-soon b { font: 500 14px 'Space Grotesk', sans-serif; letter-spacing: -.02em; }.ns-product-coming-soon small { color: #5f5f5d; font: 8px 'DM Mono', monospace; letter-spacing: .04em; }
 @media (max-width: 900px) { .ns-product-group > p { margin-bottom: 4px; }.ns-product-group button, .ns-product-group a { padding: 10px 0; } }
 @media (max-width: 600px) { .ns-hero { min-height: auto; padding-top: 76px; padding-bottom: 105px; }.ns-hero h1 { font-size: clamp(50px, 14vw, 75px); }.ns-statement { padding-top: 112px; padding-bottom: 125px; }.ns-nav button, .ns-signin { font-size: 12px; }.ns-demo-browser { box-shadow: 0 22px 55px rgba(0,0,0,.55); } }
