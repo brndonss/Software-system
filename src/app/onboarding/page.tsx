@@ -3,29 +3,11 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-type FormData = {
-  businessNiche: string;
-  businessSize: string;
-  servicesProducts: string;
-  currentSoftwareTools: string;
-  biggestBusinessStruggles: string;
-  repetitiveTasks: string;
-  desiredAutomations: string;
-  softwareGoals: string;
-  additionalInformation: string;
-};
-
-const initialData: FormData = {
-  businessNiche: "",
-  businessSize: "",
-  servicesProducts: "",
-  currentSoftwareTools: "",
-  biggestBusinessStruggles: "",
-  repetitiveTasks: "",
-  desiredAutomations: "",
-  softwareGoals: "",
-  additionalInformation: "",
-};
+type QuestionKind = "text" | "textarea" | "single_select" | "multi_select" | "number" | "boolean" | "date" | "json";
+type Question = { key: string; domain: string; prompt: string; kind: QuestionKind; options: { value: string; label: string }[] };
+type Session = { id: string; status: "in_progress" | "awaiting_input" | "completed" | "abandoned" };
+type HistoryItem = { question: Question; answer: unknown };
+type Completion = { status: "complete"; state: { coveredDomains: string[]; confidence: number; reason: string | null } };
 
 const steps = [
   ["01", "Your business", "The shape of the work."],
@@ -35,90 +17,146 @@ const steps = [
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const [form, setForm] = useState<FormData>(initialData);
+  const [session, setSession] = useState<Session | null>(null);
+  const [question, setQuestion] = useState<Question | null>(null);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [completion, setCompletion] = useState<Completion | null>(null);
 
-  useEffect(() => {
-    fetch("/api/v1/onboarding").then(async (response) => {
+  useEffect(() => { void initializeSession(); }, []);
+
+  async function initializeSession() {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch("/api/v1/onboarding/sessions");
       if (response.status === 401) { router.push("/"); return; }
-      if (!response.ok) throw new Error("Unable to load onboarding");
-      const { onboarding } = await response.json();
-      if (onboarding) setForm({
-        businessNiche: onboarding.business_niche ?? "",
-        businessSize: onboarding.business_size ?? "",
-        servicesProducts: onboarding.services_products ?? "",
-        currentSoftwareTools: onboarding.current_software_tools ?? "",
-        biggestBusinessStruggles: onboarding.biggest_business_struggles ?? "",
-        repetitiveTasks: onboarding.repetitive_tasks ?? "",
-        desiredAutomations: onboarding.desired_automations ?? "",
-        softwareGoals: onboarding.software_goals ?? "",
-        additionalInformation: onboarding.additional_information ?? "",
-      });
-    }).catch(() => setError("Unable to load your onboarding information.")).finally(() => setLoading(false));
-  }, [router]);
-
-  function update(field: keyof FormData, value: string) {
-    setForm((current) => ({ ...current, [field]: value }));
+      if (!response.ok) throw new Error("Unable to load your onboarding session.");
+      const data = await response.json() as { sessions: Session[] };
+      let active = data.sessions.find((item) => item.status === "in_progress" || item.status === "awaiting_input");
+      if (!active) {
+        const created = await fetch("/api/v1/onboarding/sessions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ workspaceId: null, metadata: {} }),
+        });
+        if (!created.ok) throw new Error((await created.json()).error?.message ?? "Unable to start your business interview.");
+        active = (await created.json() as { session: Session }).session;
+      }
+      setSession(active);
+      const savedHistory = sessionStorage.getItem(`onboarding-history:${active.id}`);
+      if (savedHistory) setHistory(JSON.parse(savedHistory) as HistoryItem[]);
+      await loadNextQuestion(active.id);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to start your business interview.");
+    } finally {
+      setLoading(false);
+    }
   }
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  async function loadNextQuestion(sessionId: string) {
+    const response = await fetch(`/api/v1/onboarding/sessions/${sessionId}/next-question`);
+    if (!response.ok) throw new Error((await response.json()).error?.message ?? "Unable to determine the next question.");
+    const result = await response.json() as { question: Question | null; status: "ready" | "complete" | "blocked" };
+    if (result.status === "complete") { await completeSession(sessionId); return; }
+    if (result.status === "blocked" || !result.question) throw new Error("The interview needs attention before it can continue.");
+    setQuestion(result.question);
+    setAnswer("");
+  }
+
+  async function submitAnswer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!session || !question || !answer.trim()) return;
     setSaving(true);
     setError("");
     try {
-      const response = await fetch("/api/v1/onboarding", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, status: "completed" }),
-      });
-      if (!response.ok) {
-        setError((await response.json()).error?.message ?? "Unable to save onboarding.");
-        return;
-      }
-      const identity = await fetch("/api/v1/auth/me");
-      const identityData = await identity.json();
-      const build = await fetch("/api/v1/system-builds", {
+      const value = parseAnswer(question.kind, answer);
+      const response = await fetch(`/api/v1/onboarding/sessions/${session.id}/answers`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customerId: identityData.profile?.customer_id }),
+        body: JSON.stringify({ questionKey: question.key, answer: value, metadata: {} }),
       });
-      const buildData = await build.json();
-      if (!build.ok) { setError(buildData.error?.message ?? "Unable to start your system build."); return; }
-      router.push(`/building/${buildData.build.id}`);
-    } catch {
-      setError("Unable to save your workspace setup. Try again.");
+      if (!response.ok) throw new Error((await response.json()).error?.message ?? "Unable to save that answer.");
+      setHistory((current) => {
+        const next = [...current, { question, answer: value }];
+        sessionStorage.setItem(`onboarding-history:${session.id}`, JSON.stringify(next));
+        return next;
+      });
+      await loadNextQuestion(session.id);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to save that answer.");
     } finally {
       setSaving(false);
     }
   }
 
+  async function completeSession(sessionId: string) {
+    const response = await fetch(`/api/v1/onboarding/sessions/${sessionId}/complete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    if (!response.ok) throw new Error((await response.json()).error?.message ?? "Your business understanding is not ready to complete.");
+    const data = await response.json() as { completion: Completion };
+    setCompletion(data.completion);
+    setQuestion(null);
+    setSession((current) => current ? { ...current, status: "completed" } : current);
+  }
+
   if (loading) return <main className="onboarding-v2"><div className="onboarding-v2-loading"><span className="onboarding-v2-mark">N</span><p>Preparing your workspace</p></div></main>;
 
-  return <main className="onboarding-v2">
-    <div className="onboarding-v2-shell">
-      <aside className="onboarding-v2-aside">
-        <button className="onboarding-v2-brand" type="button" onClick={() => router.push("/")}><span>N</span><b>NORTHSTAR</b></button>
-        <div className="onboarding-v2-aside-copy"><p className="onboarding-v2-kicker">Workspace setup</p><h1>Your business is the starting point.</h1><p>Give Northstar the context behind the work. We&apos;ll use it to shape a system that feels like yours.</p></div>
-        <div className="onboarding-v2-steps">{steps.map(([number, title, detail]) => <div className="onboarding-v2-step" key={number}><span>{number}</span><div><b>{title}</b><small>{detail}</small></div></div>)}</div>
-        <div className="onboarding-v2-aside-footer"><span className="onboarding-v2-pulse" /> Private to your workspace<br /><small>Usually takes less than 4 minutes.</small></div>
-      </aside>
-      <section className="onboarding-v2-content">
-        <header className="onboarding-v2-header"><span>01 / 03</span><button type="button" onClick={() => router.push("/")}>Exit setup <b>Esc</b></button></header>
-        <div className="onboarding-v2-form-wrap"><div className="onboarding-v2-intro"><p className="onboarding-v2-kicker">Let&apos;s get specific</p><h2>Tell us how your business actually works.</h2><p>Skip the polished version. The useful details are usually in the messy parts.</p></div>
-          <form className="onboarding-v2-form" onSubmit={submit}>
-            <fieldset><legend><span>01</span> The essentials</legend><div className="onboarding-v2-grid"><Field label="Business name or industry" value={form.businessNiche} onChange={(value) => update("businessNiche", value)} placeholder="e.g. residential construction" required /><label className="onboarding-v2-field">Team size<select required value={form.businessSize} onChange={(event) => update("businessSize", event.target.value)}><option value="">Choose one</option><option value="solo">Just me</option><option value="2-10">2-10 people</option><option value="11-50">11-50 people</option><option value="51-200">51-200 people</option><option value="201+">201+ people</option></select></label></div><Field label="What do customers come to you for?" value={form.servicesProducts} onChange={(value) => update("servicesProducts", value)} placeholder="Describe your products, services, or the work you deliver." required textarea /></fieldset>
-            <fieldset><legend><span>02</span> The friction</legend><Field label="Where does work slow down or get dropped?" value={form.biggestBusinessStruggles} onChange={(value) => update("biggestBusinessStruggles", value)} placeholder="Tell us about the bottlenecks, handoffs, or tasks that drain attention." textarea /><div className="onboarding-v2-grid"><Field label="Tools you use today" value={form.currentSoftwareTools} onChange={(value) => update("currentSoftwareTools", value)} placeholder="Email, spreadsheets, QuickBooks..." /><Field label="Work you repeat most often" value={form.repetitiveTasks} onChange={(value) => update("repetitiveTasks", value)} placeholder="Follow-ups, scheduling, reports..." /></div></fieldset>
-            <fieldset><legend><span>03</span> The direction</legend><Field label="What would you like to improve first?" value={form.desiredAutomations} onChange={(value) => update("desiredAutomations", value)} placeholder="Describe the process you want to make lighter." textarea /><div className="onboarding-v2-grid"><Field label="What does a great outcome look like?" value={form.softwareGoals} onChange={(value) => update("softwareGoals", value)} placeholder="More capacity, fewer dropped leads..." textarea /><Field label="Anything else Northstar should know?" value={form.additionalInformation} onChange={(value) => update("additionalInformation", value)} placeholder="Optional context" textarea /></div></fieldset>
-            {error && <p className="onboarding-v2-error">{error}</p>}<div className="onboarding-v2-actions"><span>Northstar will use this to prepare your workspace.</span><button className="onboarding-v2-submit" type="submit" disabled={saving}>{saving ? "Building your context..." : "Create my workspace"}<b>↗</b></button></div>
-          </form>
-        </div>
-      </section>
-    </div>
-  </main>;
+  return (
+    <main className="onboarding-v2">
+      <div className="onboarding-v2-shell">
+        <aside className="onboarding-v2-aside">
+          <button className="onboarding-v2-brand" type="button" onClick={() => router.push("/")}><span>N</span><b>NORTHSTAR</b></button>
+          <div className="onboarding-v2-aside-copy"><p className="onboarding-v2-kicker">Business interview</p><h1>Your business is the starting point.</h1><p>Tell Northstar how the work happens. The system will use your answers to build a structured understanding.</p></div>
+          <div className="onboarding-v2-steps">{steps.map(([number, title, detail]) => <div className="onboarding-v2-step" key={number}><span>{number}</span><div><b>{title}</b><small>{detail}</small></div></div>)}</div>
+          <div className="onboarding-v2-aside-footer"><span className="onboarding-v2-pulse" /> Private to your workspace<br /><small>Your answers shape the next question.</small></div>
+        </aside>
+        <section className="onboarding-v2-content">
+          <header className="onboarding-v2-header"><span>{history.length + 1} / INTERVIEW</span><button type="button" onClick={() => router.push("/")}>Exit setup <b>Esc</b></button></header>
+          <div className="onboarding-v2-form-wrap">
+            {completion ? <CompletionState completion={completion} /> : <InterviewContent history={history} question={question} answer={answer} error={error} saving={saving} onAnswerChange={setAnswer} onSubmit={submitAnswer} />}
+          </div>
+        </section>
+      </div>
+    </main>
+  );
 }
 
-function Field({ label, value, onChange, placeholder, textarea = false, required = false }: { label: string; value: string; onChange: (value: string) => void; placeholder: string; textarea?: boolean; required?: boolean }) {
-  return <label className="onboarding-v2-field">{label}{textarea ? <textarea required={required} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} rows={3} /> : <input required={required} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} />}</label>;
+function InterviewContent({ history, question, answer, error, saving, onAnswerChange, onSubmit }: { history: HistoryItem[]; question: Question | null; answer: string; error: string; saving: boolean; onAnswerChange: (value: string) => void; onSubmit: (event: FormEvent<HTMLFormElement>) => void }) {
+  return <>
+    <div className="onboarding-v2-intro"><p className="onboarding-v2-kicker">Let&apos;s get specific</p><h2>Tell us how your business actually works.</h2><p>Start in your own words. Northstar will ask what it needs to understand next.</p></div>
+    <div className="onboarding-v2-history">{history.map((item, index) => <article className="onboarding-v2-message" key={`${item.question.key}-${index}`}><span className="onboarding-v2-message-label">{item.question.domain}</span><p className="onboarding-v2-message-question">{item.question.prompt}</p><p className="onboarding-v2-message-answer">{formatAnswer(item.answer)}</p></article>)}</div>
+    {question && <form className="onboarding-v2-form" onSubmit={onSubmit}><fieldset><legend><span>{String(history.length + 1).padStart(2, "0")}</span> {question.domain}</legend><p className="onboarding-v2-question">{question.prompt}</p><QuestionInput question={question} value={answer} onChange={onAnswerChange} /></fieldset>{error && <p className="onboarding-v2-error">{error}</p>}<div className="onboarding-v2-actions"><span>Northstar chooses the next question from your answers.</span><button className="onboarding-v2-submit" type="submit" disabled={saving || !answer.trim()}>{saving ? "Saving your answer..." : "Continue"}<b>↗</b></button></div></form>}
+    {!question && error && <p className="onboarding-v2-error">{error}</p>}
+  </>;
+}
+
+function QuestionInput({ question, value, onChange }: { question: Question; value: string; onChange: (value: string) => void }) {
+  if (question.kind === "single_select" || question.kind === "boolean") {
+    return <select className="onboarding-v2-answer-control" value={value} onChange={(event) => onChange(event.target.value)}><option value="">Choose one</option>{question.kind === "boolean" ? <><option value="true">Yes</option><option value="false">No</option></> : question.options.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select>;
+  }
+  if (question.kind === "textarea" || question.kind === "json" || question.kind === "multi_select") {
+    return <textarea className="onboarding-v2-answer-control" value={value} onChange={(event) => onChange(event.target.value)} placeholder={question.kind === "json" ? "Enter a JSON object" : "Write naturally..."} rows={5} />;
+  }
+  return <input className="onboarding-v2-answer-control" type={question.kind === "number" ? "number" : question.kind === "date" ? "date" : "text"} value={value} onChange={(event) => onChange(event.target.value)} placeholder="Write naturally..." />;
+}
+
+function parseAnswer(kind: QuestionKind, value: string): unknown {
+  if (kind === "number") return Number(value);
+  if (kind === "boolean") return value === "true";
+  if (kind === "multi_select") return value.split(",").map((item) => item.trim()).filter(Boolean);
+  if (kind === "json") return JSON.parse(value) as unknown;
+  return value;
+}
+
+function formatAnswer(value: unknown) { return typeof value === "string" ? value : JSON.stringify(value); }
+
+function CompletionState({ completion }: { completion: Completion }) {
+  return <div className="onboarding-v2-completion"><p className="onboarding-v2-kicker">Business understanding captured</p><h2>Northstar has a clearer picture of how your business works.</h2><p>{completion.state.reason ?? "The interview is complete."}</p><div className="onboarding-v2-completion-meta"><span>{completion.state.coveredDomains.length} areas understood</span><span>{Math.round(completion.state.confidence * 100)}% confidence</span></div><div className="onboarding-v2-completion-note">Your answers are saved. The next step is to turn this understanding into a reviewable system design.</div></div>;
 }

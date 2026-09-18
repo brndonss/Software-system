@@ -9,7 +9,7 @@ const registerSchema = z.object({
   email: z.string().trim().email("Enter a valid email address."),
   password: z.string().min(12, "Password must be at least 12 characters long."),
   confirmPassword: z.string().min(1, "Please confirm your password."),
-  businessName: z.string().trim().min(1).max(200),
+  businessName: z.string().trim().min(1).max(200).optional(),
   firstName: z.string().trim().max(100).optional(),
   lastName: z.string().trim().max(100).optional(),
 });
@@ -48,10 +48,12 @@ export async function POST(request: Request) {
     return jsonError(message, 400, "registration_failed");
   }
 
-  const slug = `${slugify(parsed.data.businessName)}-${crypto.randomUUID().slice(0, 8)}`;
+  const defaultBusinessName = `${parsed.data.email.split("@")[0] || "Northstar"}'s workspace`;
+  const businessName = parsed.data.businessName?.trim() || defaultBusinessName;
+  const slug = `${slugify(businessName)}-${crypto.randomUUID().slice(0, 8)}`;
   const { data: customer, error: customerError } = await admin
     .from("customers")
-    .insert({ business_name: parsed.data.businessName, slug })
+    .insert({ business_name: businessName, slug })
     .select("id, business_name, slug, status, created_at")
     .single();
 

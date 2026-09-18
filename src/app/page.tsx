@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BusinessSystemDemo from "./components/BusinessSystemDemo";
+import AuthExperience from "./components/AuthExperience";
 
 const navItems = ["Solutions", "Pricing", "Resources"];
 const workflowSteps = [{ label: "Business context", detail: "Northstar starts with the way your business actually works.", icon: "01" }, { label: "AI understands", detail: "Your context becomes a clear operating picture.", icon: "02" }, { label: "Next action", detail: "The most useful next step is surfaced with its context.", icon: "03" }, { label: "Workflow and task", detail: "The work is organized into an actionable process.", icon: "04" }, { label: "Automation", detail: "Repetitive work is prepared for your approval.", icon: "05" }, { label: "Activity and result", detail: "Progress stays visible as the business moves.", icon: "06" }];
@@ -29,7 +30,7 @@ export default function Home() {
 
     <section className="ns-final-cta ns-container ns-scroll-reveal"><p className="ns-kicker">START WITH YOUR BUSINESS</p><h2>Your business is unique.<br />Your software should be too.</h2><p>Tell Northstar how your business works. We&apos;ll help you build the system around it.</p><button className="ns-button ns-button-accent" onClick={() => openAuth("create")}>Build My Business System <span>↗</span></button></section>
     <footer className="ns-footer ns-container"><div className="ns-footer-brand"><button className="ns-logo" onClick={() => goTo("top")}><span>N</span><b>NORTHSTAR</b></button><p>AI BUSINESS OPERATING SYSTEM</p></div><div className="ns-footer-links"><div><b>Product</b><button onClick={() => goTo("how-it-works")}>How it works</button><button onClick={() => goTo("how-it-works")}>Automations</button><button onClick={() => goTo("how-it-works")}>AI</button><button>Security</button></div><div><b>Company</b><button>About</button><button>Contact</button></div><div><b>Legal</b><button>Privacy</button><button>Terms</button></div></div><small>© 2026 Northstar Systems</small></footer>
-    {showAuth && <AuthModal mode={authMode} setMode={setAuthMode} onClose={() => setShowAuth(false)} />}
+    {showAuth && <AuthExperience key={authMode} mode={authMode === "create" ? "signup" : "login"} embedded onClose={() => setShowAuth(false)} onModeChange={(mode) => setAuthMode(mode === "signup" ? "create" : "sign-in")} />}
   </main>;
 }
 

@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   interviewAnswerSchema,
   interviewSessionSchema,
+  normalizeInterviewTimestamp,
   type InterviewAnswer,
   type InterviewSession,
 } from "@/lib/ai/interview-contracts";
@@ -59,12 +60,12 @@ export class SupabaseInterviewRepository implements InterviewRepository {
       workspaceId: data.workspace_id,
       status: data.status,
       version: data.version,
-      startedAt: data.started_at,
-      completedAt: data.completed_at,
+      startedAt: normalizeInterviewTimestamp(data.started_at),
+      completedAt: data.completed_at ? normalizeInterviewTimestamp(data.completed_at) : null,
       lastQuestionKey: data.last_question_key,
       createdBy: data.created_by,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
+      createdAt: normalizeInterviewTimestamp(data.created_at),
+      updatedAt: normalizeInterviewTimestamp(data.updated_at),
       metadata: data.metadata,
     });
   }
@@ -98,8 +99,8 @@ export class SupabaseInterviewRepository implements InterviewRepository {
       answerStatus: row.answer_status,
       isLatest: row.is_latest,
       version: row.version,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
+      createdAt: normalizeInterviewTimestamp(row.created_at),
+      updatedAt: normalizeInterviewTimestamp(row.updated_at),
     }));
   }
 }

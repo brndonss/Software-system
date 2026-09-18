@@ -5,6 +5,7 @@ import { defaultInterviewCatalog } from "@/lib/ai/interview-catalog";
 import {
   answerInputSchema,
   interviewAnswerSchema,
+  normalizeInterviewTimestamp,
   saveAnswerResponseSchema,
   sessionIdParamSchema,
   type JsonValue,
@@ -52,8 +53,8 @@ function serializeAnswer(row: AnswerRow): InterviewAnswer {
     answerStatus: row.answer_status,
     isLatest: row.is_latest,
     version: row.version,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    createdAt: normalizeInterviewTimestamp(row.created_at),
+    updatedAt: normalizeInterviewTimestamp(row.updated_at),
   });
 }
 

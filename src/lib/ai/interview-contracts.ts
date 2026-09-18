@@ -101,6 +101,10 @@ export const interviewSessionSchema = z.object({
 
 export type InterviewSession = z.infer<typeof interviewSessionSchema>;
 
+export function normalizeInterviewTimestamp(value: string): string {
+  return new Date(value).toISOString();
+}
+
 export const normalizedBusinessFactsSchema = z.object({
   business: z.object({
     name: z.string().max(200).optional(),

@@ -6,6 +6,7 @@ import {
   createSessionResponseSchema,
   interviewSessionSchema,
   listSessionsResponseSchema,
+  normalizeInterviewTimestamp,
   type InterviewSession,
 } from "@/lib/ai/interview-contracts";
 
@@ -33,12 +34,12 @@ function serializeSession(row: SessionRow): InterviewSession {
     workspaceId: row.workspace_id,
     status: row.status,
     version: row.version,
-    startedAt: row.started_at,
-    completedAt: row.completed_at,
+    startedAt: normalizeInterviewTimestamp(row.started_at),
+    completedAt: row.completed_at ? normalizeInterviewTimestamp(row.completed_at) : null,
     lastQuestionKey: row.last_question_key,
     createdBy: row.created_by,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    createdAt: normalizeInterviewTimestamp(row.created_at),
+    updatedAt: normalizeInterviewTimestamp(row.updated_at),
     metadata: row.metadata,
   });
 }
@@ -57,7 +58,9 @@ export async function GET() {
     .eq("customer_id", resolved.customerId)
     .order("started_at", { ascending: false });
 
-  if (error) return databaseError("Unable to load onboarding sessions", "sessions_fetch_failed", error);
+  if (error) {
+    return databaseError("Unable to load onboarding sessions", "sessions_fetch_failed", error);
+  }
 
   const response = listSessionsResponseSchema.parse({
     sessions: ((data ?? []) as SessionRow[]).map(serializeSession),
