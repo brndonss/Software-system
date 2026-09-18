@@ -19,6 +19,16 @@ const basicCreditOptions: CreditOption[] = [
   { credits: 15000, monthlyPrice: 150 },
 ];
 
+const proCreditOptions: CreditOption[] = [
+  { credits: 3000, monthlyPrice: 30 },
+  { credits: 5000, monthlyPrice: 50 },
+  { credits: 10000, monthlyPrice: 100 },
+  { credits: 20000, monthlyPrice: 200 },
+  { credits: 30000, monthlyPrice: 300 },
+  { credits: 50000, monthlyPrice: 500 },
+  { credits: 100000, monthlyPrice: 1000 },
+];
+
 const plans = [
   {
     name: "FREE",
@@ -68,7 +78,7 @@ const plans = [
       "Advanced business activity",
       "Team collaboration where supported",
     ],
-    creditOptions: [3000, 5000, 10000, 20000, 30000, 50000, 100000],
+    creditOptions: proCreditOptions,
   },
 ];
 
@@ -90,6 +100,7 @@ export default function PricingPage() {
   const [proCredits, setProCredits] = useState(3000);
   const [showCustomOrder, setShowCustomOrder] = useState(false);
   const selectedBasicCreditOption = basicCreditOptions.find((option) => option.credits === basicCredits) ?? basicCreditOptions[0];
+  const selectedProCreditOption = proCreditOptions.find((option) => option.credits === proCredits) ?? proCreditOptions[0];
 
   function openAuth(mode: "sign-in" | "create") {
     setAuthMode(mode);
@@ -151,8 +162,8 @@ export default function PricingPage() {
               </div>
 
               <div className="ns-pricing-price-block">
-                <h2>{plan.name === "BASIC" ? `$${selectedBasicCreditOption.monthlyPrice}` : plan.price}</h2>
-                {plan.name === "BASIC" && <span className="ns-pricing-price-unit">per month</span>}
+                <h2>{plan.name === "BASIC" ? `$${selectedBasicCreditOption.monthlyPrice.toLocaleString()}` : plan.name === "PRO" ? `$${selectedProCreditOption.monthlyPrice.toLocaleString()}` : plan.price}</h2>
+                {(plan.name === "BASIC" || plan.name === "PRO") && <span className="ns-pricing-price-unit">per month</span>}
                 <p>{plan.summary}</p>
               </div>
 
