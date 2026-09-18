@@ -1,9 +1,23 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AuthModal, PublicNavigation } from "@/app/page";
+
+type CreditOption = {
+  credits: number;
+  monthlyPrice: number;
+};
+
+const basicCreditOptions: CreditOption[] = [
+  { credits: 1000, monthlyPrice: 10 },
+  { credits: 2000, monthlyPrice: 20 },
+  { credits: 3000, monthlyPrice: 30 },
+  { credits: 5000, monthlyPrice: 50 },
+  { credits: 8000, monthlyPrice: 80 },
+  { credits: 10000, monthlyPrice: 100 },
+  { credits: 15000, monthlyPrice: 150 },
+];
 
 const plans = [
   {
@@ -20,7 +34,7 @@ const plans = [
       "Limited AI-assisted setup",
       "Basic activity",
     ],
-    ai: "Included AI usage for trying the product.",
+    creditAllowance: "500 AI credits to try",
   },
   {
     name: "BASIC",
@@ -37,7 +51,7 @@ const plans = [
       "Workflow recommendations",
       "Included AI usage",
     ],
-    ai: "Included AI usage for day-to-day planning and setup assistance.",
+    creditOptions: basicCreditOptions,
   },
   {
     name: "PRO",
@@ -54,24 +68,7 @@ const plans = [
       "Advanced business activity",
       "Team collaboration where supported",
     ],
-    ai: "Included AI usage for more advanced workflows and recommendations.",
-  },
-  {
-    name: "ENTERPRISE",
-    price: "Custom",
-    summary: "For larger organizations with advanced requirements",
-    description: "A tailored plan for larger organizations with custom requirements, team scale, and operational complexity.",
-    cta: "Contact us",
-    featured: false,
-    features: [
-      "Everything in Pro",
-      "Custom usage",
-      "Organization-level requirements",
-      "Custom integrations",
-      "Priority support",
-      "Contact us",
-    ],
-    ai: "Custom AI usage for larger-scale needs and advanced requirements.",
+    creditOptions: [3000, 5000, 10000, 20000, 30000, 50000, 100000],
   },
 ];
 
@@ -80,6 +77,8 @@ const billingOptions = [
   { value: "yearly", label: "Yearly" },
 ];
 
+type CreditPlan = (typeof plans)[number] & { creditOptions?: Array<number | CreditOption>; creditAllowance?: string };
+
 export default function PricingPage() {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -87,6 +86,10 @@ export default function PricingPage() {
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState<"sign-in" | "create">("create");
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
+  const [basicCredits, setBasicCredits] = useState(1000);
+  const [proCredits, setProCredits] = useState(3000);
+  const [showCustomOrder, setShowCustomOrder] = useState(false);
+  const selectedBasicCreditOption = basicCreditOptions.find((option) => option.credits === basicCredits) ?? basicCreditOptions[0];
 
   function openAuth(mode: "sign-in" | "create") {
     setAuthMode(mode);
@@ -140,7 +143,7 @@ export default function PricingPage() {
 
       <section className="ns-pricing-plans">
         <div className="ns-pricing-container ns-pricing-grid">
-          {plans.map((plan) => (
+          {(plans as CreditPlan[]).map((plan) => (
             <article key={plan.name} className={`ns-pricing-card ${plan.featured ? "featured" : ""}`}>
               <div className="ns-pricing-card-head">
                 <span className="ns-pricing-label">{plan.name}</span>
@@ -148,70 +151,78 @@ export default function PricingPage() {
               </div>
 
               <div className="ns-pricing-price-block">
-                <h2>{plan.price}</h2>
+                <h2>{plan.name === "BASIC" ? `$${selectedBasicCreditOption.monthlyPrice}` : plan.price}</h2>
+                {plan.name === "BASIC" && <span className="ns-pricing-price-unit">per month</span>}
                 <p>{plan.summary}</p>
               </div>
 
               <p className="ns-pricing-description">{plan.description}</p>
 
-              <button
-                type="button"
-                className={`ns-button ${plan.name === "ENTERPRISE" ? "ns-pricing-ghost" : "ns-button-dark"}`}
-                onClick={() => {
-                  if (plan.name !== "ENTERPRISE") {
-                    openAuth("create");
-                  }
-                }}
-              >
-                {plan.cta}
-                <span aria-hidden="true">↗</span>
-              </button>
+              {plan.name === "FREE" ? (
+                <div className="ns-pricing-credit-fixed"><span>AI CREDIT ALLOWANCE</span><strong>{plan.creditAllowance}</strong></div>
+              ) : (
+                <div className="ns-pricing-credit-selector">
+                  <label htmlFor={`${plan.name.toLowerCase()}-credits`}>AI credits / month</label>
+                  <select
+                    id={`${plan.name.toLowerCase()}-credits`}
+                    value={plan.name === "BASIC" ? basicCredits : proCredits}
+                    onChange={(event) => plan.name === "BASIC" ? setBasicCredits(Number(event.target.value)) : setProCredits(Number(event.target.value))}
+                  >
+                    {plan.creditOptions?.map((option) => {
+                      const credits = typeof option === "number" ? option : option.credits;
+                      return <option value={credits} key={credits}>{credits.toLocaleString()} AI credits / month</option>;
+                    })}
+                  </select>
+                  <small>Final pricing shown at checkout</small>
+                </div>
+              )}
 
               <div className="ns-pricing-features">
-                <span className="ns-pricing-ai-label">AI</span>
-                <p>{plan.ai}</p>
                 <ul>
                   {plan.features.map((feature) => (
                     <li key={feature}>{feature}</li>
                   ))}
                 </ul>
               </div>
+              <button type="button" className="ns-button ns-button-dark ns-pricing-card-cta" onClick={() => openAuth("create")}>
+                {plan.cta} <span aria-hidden="true">↗</span>
+              </button>
             </article>
           ))}
-        </div>
-      </section>
-
-      <section className="ns-pricing-credits">
-        <div className="ns-pricing-container ns-pricing-credits-inner">
-          <p className="ns-kicker">AI USAGE</p>
-          <h2>Pay for the work your system does.</h2>
-          <p>
-            Normal business management should not consume credits. Viewing customers, managing leads,
-            creating tasks, and checking activity are part of regular workspace use. AI-powered or
-            compute-heavy actions may use included AI usage or credits for work such as AI-assisted
-            business setup, analyzing business context, generating recommendations, generating workflows,
-            and future AI automation or agent actions.
-          </p>
         </div>
       </section>
 
       <section className="ns-pricing-enterprise">
         <div className="ns-pricing-container">
           <p className="ns-kicker">ENTERPRISE</p>
-          <h2>Built for larger organizations.</h2>
+          <h2>Custom usage, higher limits, and support for larger operations.</h2>
           <p>
-            For larger organizations, we can discuss custom usage, custom integrations, team requirements,
-            security requirements, and priority support. Enterprise plans can be shaped around your
-            operating needs and rollout timeline.
+            Custom usage, higher limits, and support for larger operations. Need more credits? Contact sales for custom usage.
           </p>
           <div className="ns-pricing-enterprise-actions">
-            <Link href="/" className="ns-button ns-button-dark">Back to home <span>↗</span></Link>
-            <button type="button" className="ns-button ns-pricing-ghost" aria-label="Contact sales is not configured yet">Contact us <span>↗</span></button>
+            <button type="button" className="ns-button ns-button-dark" onClick={() => setShowCustomOrder(true)}>Contact sales <span>↗</span></button>
           </div>
         </div>
       </section>
 
       {showAuth && <AuthModal mode={authMode} setMode={setAuthMode} onClose={() => setShowAuth(false)} />}
+      {showCustomOrder && (
+        <div className="ns-credit-modal-backdrop" role="presentation" onClick={() => setShowCustomOrder(false)}>
+          <section className="ns-credit-modal ns-custom-order-modal" role="dialog" aria-modal="true" aria-labelledby="custom-order-heading" onClick={(event) => event.stopPropagation()}>
+            <button type="button" className="ns-credit-modal-close" onClick={() => setShowCustomOrder(false)} aria-label="Close custom order preview">×</button>
+            <p className="ns-kicker">CUSTOM ORDER PREVIEW</p>
+            <h2 id="custom-order-heading">Tell us what you need.</h2>
+            <p>This form is a preview until the backend and contact workflow are connected. Nothing will be submitted.</p>
+            <form onSubmit={(event) => event.preventDefault()}>
+              <label>Business name<input type="text" placeholder="Your business" /></label>
+              <label>Work email<input type="email" placeholder="you@company.com" /></label>
+              <label>Estimated monthly usage<input type="text" placeholder="Example: 25,000 credits" /></label>
+              <label>Message<textarea placeholder="Tell us about your expected usage" rows={3} /></label>
+              <button type="submit" className="ns-button ns-button-accent">Request custom order <span aria-hidden="true">↗</span></button>
+            </form>
+          </section>
+        </div>
+      )}
     </main>
   );
 }
