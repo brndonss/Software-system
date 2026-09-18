@@ -1,0 +1,15 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { AuthModal, PublicNavigation } from "@/app/page";
+
+const templates = [["New Lead Follow-up", "Organize a new lead, define the next action, create follow-up work, and keep the result visible."], ["Customer Onboarding", "Create a repeatable process for bringing a new customer into the business."], ["Missed Lead Recovery", "Surface leads that still need attention and organize the next follow-up."], ["Weekly Business Review", "Bring important tasks, follow-ups, leads, and recent activity into one review process."], ["Client Follow-up", "Create a structured follow-up process so customer conversations do not disappear."], ["Lead Qualification", "Organize new leads and move them through clear qualification stages."]];
+
+export default function TemplatesPage() {
+  const router = useRouter(); const [menuOpen, setMenuOpen] = useState(false); const [productMenuOpen, setProductMenuOpen] = useState(false); const [showAuth, setShowAuth] = useState(false);
+  useEffect(() => { const items = Array.from(document.querySelectorAll<HTMLElement>(".ns-resource-reveal")); const observer = new IntersectionObserver((entries) => entries.forEach((entry) => { if (entry.isIntersecting) { entry.target.classList.add("is-visible"); observer.unobserve(entry.target); } }), { threshold: .12 }); items.forEach((item) => observer.observe(item)); return () => observer.disconnect(); }, []);
+  return <ResourceShell page="templates" menuOpen={menuOpen} setMenuOpen={setMenuOpen} productMenuOpen={productMenuOpen} setProductMenuOpen={setProductMenuOpen} onNavigate={(id) => router.push(id ? `/#${id}` : "/")} onLogin={() => setShowAuth(true)} onGetStarted={() => setShowAuth(true)}><section className="ns-resource-hero ns-resource-reveal"><p className="ns-kicker">BUSINESS TEMPLATES</p><h1>Start with a system<br />built for real work</h1><p>Templates are starting points for common business processes. Use them as examples of how context, tasks, follow-ups, and activity can fit together.</p></section><section className="ns-resource-grid ns-resource-reveal">{templates.map(([title, description]) => <article key={title}><small>RESOURCE TEMPLATE</small><h2>{title}</h2><p>{description}</p><button type="button">View template <span>↗</span></button></article>)}</section>{showAuth && <AuthModal mode="create" setMode={() => undefined} onClose={() => setShowAuth(false)} />}</ResourceShell>;
+}
+
+function ResourceShell(props: { page: string; menuOpen: boolean; setMenuOpen: (value: boolean) => void; productMenuOpen: boolean; setProductMenuOpen: (value: boolean) => void; onNavigate: (id: string) => void; onLogin: () => void; onGetStarted: () => void; children: React.ReactNode }) { return <main className={`ns-resource-page ns-resource-${props.page}`}><PublicNavigation menuOpen={props.menuOpen} setMenuOpen={props.setMenuOpen} productMenuOpen={props.productMenuOpen} setProductMenuOpen={props.setProductMenuOpen} onNavigate={props.onNavigate} onLogin={props.onLogin} onGetStarted={props.onGetStarted} /><div className="ns-resource-container">{props.children}</div></main>; }
