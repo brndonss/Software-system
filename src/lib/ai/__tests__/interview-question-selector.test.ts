@@ -6,9 +6,11 @@ import {
   interviewQuestionSchema,
   normalizedBusinessFactsSchema,
 } from "@/lib/ai/interview-contracts";
+import { mergeAnswerFacts } from "@/lib/ai/interview-facts";
 import { selectNextQuestion } from "@/lib/ai/interview-question-selector";
 
 const domain = interviewDomainSchema.parse({ key: "business", label: "Business", description: "Business", priority: 10 });
+const customerDomain = interviewDomainSchema.parse({ key: "customers", label: "Customers", description: "Customers", priority: 9 });
 const facts = normalizedBusinessFactsSchema.parse({});
 const question = (key: string, metadata: Record<string, unknown>, overrides = {}) => interviewQuestionSchema.parse({
   key,
@@ -78,4 +80,48 @@ test("prioritizes an active follow-up and blocks unsatisfied dependencies", () =
   ];
   const result = selectNextQuestion(questions, [domain], [domain], facts, [answer("parent", "Known", { business: { name: "Known" } })]);
   assert.equal(result.question?.key, "follow-up");
+});
+
+test("does not repeat a warehouse customer question after a natural-language answer", () => {
+  const customerQuestion = { ...question("customers.segments", { targetPaths: ["customers.segments"] }), domain: "customers" };
+  const nextQuestion = question("business.stage", { targetPaths: ["business.stage"] });
+  const customerAnswer = answer(
+    "customers.segments",
+    "Our main customers are businesses that purchase inventory from us. Some are regular wholesale customers, while others place orders as needed. We need to keep track of customer accounts, orders, inventory availability, and fulfillment.",
+    { customers: { segments: "Our main customers are businesses that purchase inventory from us. Some are regular wholesale customers, while others place orders as needed. We need to keep track of customer accounts, orders, inventory availability, and fulfillment." } },
+  );
+  const mergedFacts = mergeAnswerFacts([customerAnswer]);
+  assert.ok(mergedFacts.customers.segments.some((segment) => segment.includes("wholesale customers")));
+
+  const result = selectNextQuestion(
+    [customerQuestion, nextQuestion],
+    [domain, customerDomain],
+    [domain, customerDomain],
+    mergedFacts,
+    [customerAnswer],
+  );
+
+  assert.equal(result.question?.key, "business.stage");
+});
+
+test("does not repeat a restaurant customer question after a natural-language answer", () => {
+  const customerQuestion = { ...question("customers.segments", { targetPaths: ["customers.segments"] }), domain: "customers" };
+  const nextQuestion = question("business.stage", { targetPaths: ["business.stage"] });
+  const customerAnswer = answer(
+    "customers.segments",
+    "We serve local families, office groups, and event guests. Some dine in regularly, while others order for special occasions. We need to track guests, reservations, orders, and delivery.",
+    { customers: { segments: "We serve local families, office groups, and event guests. Some dine in regularly, while others order for special occasions. We need to track guests, reservations, orders, and delivery." } },
+  );
+  const mergedFacts = mergeAnswerFacts([customerAnswer]);
+  assert.ok(mergedFacts.customers.segments.some((segment) => segment.includes("local families")));
+
+  const result = selectNextQuestion(
+    [customerQuestion, nextQuestion],
+    [domain, customerDomain],
+    [domain, customerDomain],
+    mergedFacts,
+    [customerAnswer],
+  );
+
+  assert.equal(result.question?.key, "business.stage");
 });

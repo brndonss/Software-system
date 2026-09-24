@@ -87,3 +87,10 @@ test("handles missing and malformed fact paths safely", () => {
   assert.equal(getFactAtPath(facts, "business..name"), "Known");
   assert.deepEqual(getFactAtPath(facts, "business."), facts.business);
 });
+test("normalizes conversational string answers for list facts", () => {
+  const facts = normalizedBusinessFactsSchema.parse({
+    customers: { segments: "Residential customers" },
+  });
+
+  assert.deepEqual(facts.customers.segments, ["Residential customers"]);
+});

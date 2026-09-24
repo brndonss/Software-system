@@ -52,6 +52,7 @@ Do not create entities simply because they are common in another industry.
 Every entity must have a reason to exist.
 Every workflow must correspond to an actual business operation.
 Every role must correspond to an actual responsibility.
+Every role permission must be an explicit object with an action, an entity key, and an optional field key; never emit unscoped permission strings or infer permission targets.
 Every view must provide operational value.
 Preserve uncertainty instead of inventing facts.
 If critical information is missing, request clarification.
@@ -94,10 +95,10 @@ export function buildFallbackSystemBlueprint(businessDescription: string, contex
     label: entity.label,
     description: entity.description,
     fields: [
-      { key: "name", label: "Name", type: "text" as const, required: true, unique: false },
-      { key: "status", label: "Status", type: "select" as const, required: true, unique: false, options: ["new", "active", "in_progress", "complete", "paused"] },
-      { key: "owner", label: "Owner", type: "text" as const, required: false, unique: false },
-      { key: "notes", label: "Notes", type: "textarea" as const, required: false, unique: false },
+      { key: "name", label: "Name", type: "text" as const, required: true, unique: false, nullable: false, validation: {} },
+      { key: "status", label: "Status", type: "select" as const, required: true, unique: false, nullable: false, options: ["new", "active", "in_progress", "complete", "paused"], validation: {} },
+      { key: "owner", label: "Owner", type: "text" as const, required: false, unique: false, nullable: true, validation: {} },
+      { key: "notes", label: "Notes", type: "textarea" as const, required: false, unique: false, nullable: true, validation: {} },
     ],
   }));
 
@@ -114,9 +115,9 @@ export function buildFallbackSystemBlueprint(businessDescription: string, contex
       label: "Operating Records",
       description: "Primary records representing the operating work being managed.",
       fields: [
-        { key: "name", label: "Name", type: "text" as const, required: true, unique: false },
-        { key: "status", label: "Status", type: "select" as const, required: true, unique: false, options: ["new", "active", "complete"] },
-        { key: "owner", label: "Owner", type: "text" as const, required: false, unique: false },
+        { key: "name", label: "Name", type: "text" as const, required: true, unique: false, nullable: false, validation: {} },
+        { key: "status", label: "Status", type: "select" as const, required: true, unique: false, nullable: false, options: ["new", "active", "complete"], validation: {} },
+        { key: "owner", label: "Owner", type: "text" as const, required: false, unique: false, nullable: true, validation: {} },
       ],
     }],
     relationships: [
@@ -129,10 +130,11 @@ export function buildFallbackSystemBlueprint(businessDescription: string, contex
         name: "Core operating workflow",
         description: "Track the lifecycle from intake through completion and follow-up.",
         trigger: workflowTriggers[0],
+        triggerConfig: {},
         steps: [
-          { key: "create_record", type: "create_record", description: "Create the initial operating record.", entity: entities[0]?.key ?? "operating_records" },
-          { key: "assign_owner", type: "assign", description: "Assign an accountable team member.", entity: entities[2]?.key ?? "tasks" },
-          { key: "update_status", type: "update_record", description: "Update status as progress is made.", entity: entities[0]?.key ?? "operating_records" },
+          { key: "create_record", type: "create_record", description: "Create the initial operating record.", entity: entities[0]?.key ?? "operating_records", config: { entity: entities[0]?.key ?? "operating_records" } },
+          { key: "assign_owner", type: "assign", description: "Assign an accountable team member.", entity: entities[2]?.key ?? "tasks", config: { entity: entities[2]?.key ?? "tasks" } },
+          { key: "update_status", type: "update_record", description: "Update status as progress is made.", entity: entities[0]?.key ?? "operating_records", config: { entity: entities[0]?.key ?? "operating_records", field: "status", value: "in_progress" } },
         ],
       },
       {
@@ -140,15 +142,25 @@ export function buildFallbackSystemBlueprint(businessDescription: string, contex
         name: "Follow-up workflow",
         description: "Ensure work moves forward with escalation and communication when required.",
         trigger: workflowTriggers[1],
+        triggerConfig: {},
         steps: [
-          { key: "notify_team", type: "notify", description: "Share an update with the responsible team.", entity: "communications" },
-          { key: "create_task", type: "create_task", description: "Create a follow-up task when work needs additional handling.", entity: "tasks" },
+          { key: "notify_team", type: "notify", description: "Share an update with the responsible team.", entity: "communications", config: { message: "Operational work needs attention." } },
+          { key: "create_task", type: "create_task", description: "Create a follow-up task when work needs additional handling.", entity: "tasks", config: { entity: "tasks", title: "Follow up on operational work" } },
         ],
       },
     ],
     roles: [
-      { key: "owner", name: "Owner", description: "Owns the outcome and approves changes in business operations.", permissions: ["read", "update", "approve"] },
-      { key: "operator", name: "Operator", description: "Delivers the operational work and updates records.", permissions: ["create", "read", "update", "assign"] },
+      { key: "owner", name: "Owner", description: "Owns the outcome and approves changes in business operations.", permissions: [
+        { action: "read" as const, entity: entities[0]?.key ?? "operating_records" },
+        { action: "update" as const, entity: entities[0]?.key ?? "operating_records" },
+        { action: "approve" as const, entity: entities[0]?.key ?? "operating_records" },
+      ] },
+      { key: "operator", name: "Operator", description: "Delivers the operational work and updates records.", permissions: [
+        { action: "create" as const, entity: entities[0]?.key ?? "operating_records" },
+        { action: "read" as const, entity: entities[0]?.key ?? "operating_records" },
+        { action: "update" as const, entity: entities[0]?.key ?? "operating_records" },
+        { action: "assign" as const, entity: entities[0]?.key ?? "operating_records" },
+      ] },
     ],
     views: [
       { key: "operations_dashboard", name: "Operations dashboard", entity: entities[0]?.key ?? "operating_records", type: "dashboard" },
@@ -158,15 +170,21 @@ export function buildFallbackSystemBlueprint(businessDescription: string, contex
       { key: "status_updates", trigger: workflowTriggers[2], actions: ["notify", "create_task"], conditions: ["status changed to in progress", "owner assigned"] },
     ],
     integrations: [
-      { key: "communications_integration", provider: "email", capability: "notification", purpose: "Share operational updates with stakeholders" },
+      { key: "communications_integration", provider: "email", capability: "notification", purpose: "Share operational updates with stakeholders", config: {}, enabled: true, references: [] },
     ],
+    reports: [],
     agent: {
+      key: "operations_coordinator",
       name: "Operations Coordinator",
       persona: "Calm and process-focused operator who keeps work moving without bypassing required approvals.",
       mission: "Monitor core operational records, surface issues early, and guide the right people to action within approved business rules.",
       responsibilities: ["Review active records", "Flag exceptions", "Route tasks to the right owner", "Summarize status changes"],
       guardrails: ["Never bypass tenant boundaries or missing permissions", "Never claim a task succeeds without a validated update", "Never invent records or business facts"],
       allowedTools: ["read_customer_data", "search_records", "update_record", "create_task", "notify_team"],
+      allowedEntities: entities.map((entity) => entity.key),
+      allowedActions: [{ action: "read" as const, entity: entities[0]?.key ?? "operating_records" }],
+      integrations: ["communications_integration"],
+      modelConfig: {},
       escalationRules: ["Escalate to an owner when risk or workflow exceptions are detected", "Request clarification when critical information is missing"],
     },
     assumptions: cleaned ? ["The business is operating in a dynamic environment and needs a structured operational system."] : ["The business description is still too sparse for a detailed operational model."],

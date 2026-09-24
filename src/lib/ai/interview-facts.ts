@@ -52,6 +52,10 @@ function mergeJsonValues(base: JsonValue, incoming: JsonValue): JsonValue {
   return merged;
 }
 
+export function mergeFactObjects(base: JsonValue, incoming: JsonValue): JsonValue {
+  return mergeJsonValues(base, incoming);
+}
+
 function compareAnswers(left: InterviewAnswer, right: InterviewAnswer): number {
   const updatedComparison = left.updatedAt.localeCompare(right.updatedAt);
   if (updatedComparison !== 0) return updatedComparison;

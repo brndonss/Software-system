@@ -3,12 +3,33 @@ import { z } from "zod";
 import { generateSystemBlueprint, validateSystemBlueprint } from "@/lib/ai/system-builder";
 import { resolveCustomerIdFromSession } from "@/lib/business/module-helpers";
 import { jsonError } from "@/lib/api";
+import { buildBlueprintGenerationContext } from "./context";
 
-const blueprintRequestSchema = z.object({
-  businessDescription: z.string().trim().min(10).max(4000),
+export const blueprintRequestSchema = z.object({
+  businessDescription: z.string().trim().max(4000).optional(),
+  sessionId: z.string().uuid().optional(),
 }).strict();
 
-const blueprintDraftSelect = "id, customer_id, workspace_id, version, status, business_summary, extracted_facts, blueprint, validation_errors, created_at, updated_at";
+const blueprintDraftSelect = "id, customer_id, workspace_id, onboarding_session_id, version, status, business_summary, extracted_facts, blueprint, validation_errors, created_at, updated_at";
+
+export async function GET(request: Request) {
+  const resolved = await resolveCustomerIdFromSession();
+  if ("response" in resolved) return resolved.response;
+  const sessionId = new URL(request.url).searchParams.get("sessionId");
+  if (!sessionId || !z.string().uuid().safeParse(sessionId).success) return jsonError("A valid onboarding session is required", 422, "invalid_session_id");
+
+  const { data, error } = await resolved.supabase
+    .from("workspace_blueprints")
+    .select(blueprintDraftSelect)
+    .eq("onboarding_session_id", sessionId)
+    .eq("customer_id", resolved.customerId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) return jsonError("Unable to load the saved system draft", 500, "blueprint_fetch_failed");
+  if (!data) return NextResponse.json({ draft: null });
+  return NextResponse.json({ draft: data, blueprint: data.blueprint, validationErrors: [] });
+}
 
 export async function POST(request: Request) {
   const resolved = await resolveCustomerIdFromSession();
@@ -23,6 +44,46 @@ export async function POST(request: Request) {
 
   const parsed = blueprintRequestSchema.safeParse(body);
   if (!parsed.success) {
+    return jsonError("Please provide a clear business description to analyze.", 400, "invalid_blueprint_request");
+  }
+
+  let sessionId = parsed.data.sessionId;
+  let businessDescription = parsed.data.businessDescription ?? "";
+  let sessionAnswers: { question_key: string; answer_json: unknown; normalized_facts: unknown }[] = [];
+  if (sessionId) {
+    const { data: session, error: sessionLookupError } = await resolved.supabase
+      .from("onboarding_sessions")
+      .select("id")
+      .eq("id", sessionId)
+      .eq("customer_id", resolved.customerId)
+      .maybeSingle();
+
+    if (sessionLookupError) return jsonError("Unable to validate the onboarding session", 500, "session_context_failed");
+    if (!session) return jsonError("Onboarding session not found", 404, "session_not_found");
+
+    const { data: answers, error: answersError } = await resolved.supabase
+      .from("onboarding_answers")
+      .select("question_key, answer_json, normalized_facts")
+      .eq("onboarding_session_id", sessionId)
+      .eq("customer_id", resolved.customerId)
+      .eq("is_latest", true)
+      .in("answer_status", ["answered", "updated"])
+      .order("updated_at", { ascending: true });
+
+    if (answersError) return jsonError("Unable to load the saved business understanding", 500, "answers_context_failed");
+    sessionAnswers = answers ?? [];
+    const persistedDescription = sessionAnswers
+      .map((answer) => {
+        const answerJson = answer.answer_json as { value?: unknown } | null;
+        const value = answerJson?.value;
+        return value === undefined ? null : `${answer.question_key}: ${typeof value === "string" ? value : JSON.stringify(value)}`;
+      })
+      .filter((answer): answer is string => Boolean(answer))
+      .join("\n");
+    if (persistedDescription.length >= 10) businessDescription = persistedDescription;
+  }
+
+  if (businessDescription.length < 10) {
     return jsonError("Please provide a clear business description to analyze.", 400, "invalid_blueprint_request");
   }
 
@@ -46,21 +107,15 @@ export async function POST(request: Request) {
     return jsonError("Unable to load onboarding session context", 500, "session_context_failed");
   }
 
-  const existingContext = {
-    business_niche: onboardingData?.business_niche ?? null,
-    business_size: onboardingData?.business_size ?? null,
-    services_products: onboardingData?.services_products ?? null,
-    current_software_tools: onboardingData?.current_software_tools ?? null,
-    biggest_business_struggles: onboardingData?.biggest_business_struggles ?? null,
-    repetitive_tasks: onboardingData?.repetitive_tasks ?? null,
-    desired_automations: onboardingData?.desired_automations ?? null,
-    software_goals: onboardingData?.software_goals ?? null,
-    additional_information: onboardingData?.additional_information ?? null,
-    onboarding_sessions: onboardingSessions ?? [],
-  };
+  const existingContext = buildBlueprintGenerationContext({
+    sessionId,
+    onboardingData: onboardingData as Record<string, unknown> | null,
+    onboardingSessions: onboardingSessions ?? [],
+    sessionAnswers,
+  });
 
   const blueprint = await generateSystemBlueprint({
-    businessDescription: parsed.data.businessDescription,
+    businessDescription,
     existingFacts: existingContext,
     onboarding: existingContext,
   });
@@ -119,9 +174,11 @@ export async function POST(request: Request) {
     .insert({
       customer_id: resolved.customerId,
       workspace_id: workspaceId,
-      onboarding_session_id: onboardingSessions?.[0]?.id ?? null,
+      onboarding_session_id: sessionId ?? onboardingSessions?.[0]?.id ?? null,
       version: nextVersion,
       status: "draft",
+      validation_status: "valid",
+      validated_at: new Date().toISOString(),
       source: "onboarding",
       business_summary: {
         summary: validation.data.business.summary,
@@ -129,7 +186,7 @@ export async function POST(request: Request) {
         operational_focus: validation.data.business.operationalFocus,
       },
       extracted_facts: {
-        description: parsed.data.businessDescription,
+        description: businessDescription,
         onboarding: existingContext,
       },
       blueprint: validation.data,

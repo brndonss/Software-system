@@ -105,94 +105,125 @@ export function normalizeInterviewTimestamp(value: string): string {
   return new Date(value).toISOString();
 }
 
+function splitNormalizedString(value: string, maxLength: number): string[] {
+  const trimmed = value.trim();
+  if (!trimmed) return [];
+
+  return trimmed
+    .split(/(?<=[.!?])\s+|,\s+/)
+    .flatMap((segment) => {
+      const words = segment.trim().split(/\s+/).filter(Boolean);
+      const chunks: string[] = [];
+      let current = "";
+
+      for (const word of words) {
+        const candidate = current ? `${current} ${word}` : word;
+        if (candidate.length <= maxLength) {
+          current = candidate;
+        } else {
+          if (current) chunks.push(current);
+          current = word.slice(0, maxLength);
+        }
+      }
+
+      if (current) chunks.push(current);
+      return chunks;
+    });
+}
+
+const normalizedStringList = (maxLength: number) => z.preprocess(
+  (value) => typeof value === "string" ? splitNormalizedString(value, maxLength) : value,
+  z.array(z.string().max(maxLength)).default([]),
+);
+
 export const normalizedBusinessFactsSchema = z.object({
   business: z.object({
     name: z.string().max(200).optional(),
     legalName: z.string().max(200).optional(),
     description: z.string().max(2000).optional(),
     stage: z.string().max(200).optional(),
-    locations: z.array(z.string().max(200)).default([]),
+    locations: normalizedStringList(200),
     website: z.string().max(500).optional(),
   }).catchall(jsonValueSchema).prefault({}),
   customers: z.object({
-    segments: z.array(z.string().max(200)).default([]),
-    targetAudience: z.array(z.string().max(200)).default([]),
-    buyingTriggers: z.array(z.string().max(200)).default([]),
-    customerJourney: z.array(z.string().max(500)).default([]),
+    segments: normalizedStringList(200),
+    targetAudience: normalizedStringList(200),
+    buyingTriggers: normalizedStringList(200),
+    customerJourney: normalizedStringList(500),
   }).catchall(jsonValueSchema).prefault({}),
   offerings: z.object({
-    products: z.array(z.string().max(200)).default([]),
-    services: z.array(z.string().max(200)).default([]),
-    pricingModel: z.array(z.string().max(200)).default([]),
-    deliveryModel: z.array(z.string().max(200)).default([]),
+    products: normalizedStringList(200),
+    services: normalizedStringList(200),
+    pricingModel: normalizedStringList(200),
+    deliveryModel: normalizedStringList(200),
   }).catchall(jsonValueSchema).prefault({}),
   people: z.object({
-    roles: z.array(z.string().max(200)).default([]),
-    owners: z.array(z.string().max(200)).default([]),
-    teams: z.array(z.string().max(200)).default([]),
-    responsibilities: z.array(z.string().max(500)).default([]),
+    roles: normalizedStringList(200),
+    owners: normalizedStringList(200),
+    teams: normalizedStringList(200),
+    responsibilities: normalizedStringList(500),
   }).catchall(jsonValueSchema).prefault({}),
   sales: z.object({
-    leadSources: z.array(z.string().max(200)).default([]),
-    salesProcess: z.array(z.string().max(500)).default([]),
-    channels: z.array(z.string().max(200)).default([]),
-    conversionIssues: z.array(z.string().max(500)).default([]),
+    leadSources: normalizedStringList(200),
+    salesProcess: normalizedStringList(500),
+    channels: normalizedStringList(200),
+    conversionIssues: normalizedStringList(500),
   }).catchall(jsonValueSchema).prefault({}),
   workflows: z.object({
-    coreProcesses: z.array(z.string().max(500)).default([]),
-    bottlenecks: z.array(z.string().max(500)).default([]),
-    handoffs: z.array(z.string().max(500)).default([]),
-    approvals: z.array(z.string().max(500)).default([]),
+    coreProcesses: normalizedStringList(500),
+    bottlenecks: normalizedStringList(500),
+    handoffs: normalizedStringList(500),
+    approvals: normalizedStringList(500),
   }).catchall(jsonValueSchema).prefault({}),
   scheduling: z.object({
-    appointments: z.array(z.string().max(500)).default([]),
-    calendars: z.array(z.string().max(200)).default([]),
-    constraints: z.array(z.string().max(500)).default([]),
+    appointments: normalizedStringList(500),
+    calendars: normalizedStringList(200),
+    constraints: normalizedStringList(500),
   }).catchall(jsonValueSchema).prefault({}),
   payments: z.object({
-    methods: z.array(z.string().max(200)).default([]),
-    cycles: z.array(z.string().max(200)).default([]),
-    painPoints: z.array(z.string().max(500)).default([]),
+    methods: normalizedStringList(200),
+    cycles: normalizedStringList(200),
+    painPoints: normalizedStringList(500),
   }).catchall(jsonValueSchema).prefault({}),
   inventoryAssets: z.object({
-    trackedItems: z.array(z.string().max(200)).default([]),
-    locations: z.array(z.string().max(200)).default([]),
-    constraints: z.array(z.string().max(500)).default([]),
+    trackedItems: normalizedStringList(200),
+    locations: normalizedStringList(200),
+    constraints: normalizedStringList(500),
   }).catchall(jsonValueSchema).prefault({}),
   communication: z.object({
-    channels: z.array(z.string().max(200)).default([]),
-    frequency: z.array(z.string().max(200)).default([]),
-    issues: z.array(z.string().max(500)).default([]),
+    channels: normalizedStringList(200),
+    frequency: normalizedStringList(200),
+    issues: normalizedStringList(200),
   }).catchall(jsonValueSchema).prefault({}),
   tools: z.object({
-    software: z.array(z.string().max(200)).default([]),
-    integrationNeeds: z.array(z.string().max(200)).default([]),
-    customProcesses: z.array(z.string().max(500)).default([]),
+    software: normalizedStringList(200),
+    integrationNeeds: normalizedStringList(200),
+    customProcesses: normalizedStringList(500),
   }).catchall(jsonValueSchema).prefault({}),
   problems: z.object({
-    topProblems: z.array(z.string().max(500)).default([]),
-    impact: z.array(z.string().max(500)).default([]),
-    urgency: z.array(z.string().max(200)).default([]),
+    topProblems: normalizedStringList(500),
+    impact: normalizedStringList(500),
+    urgency: normalizedStringList(200),
   }).catchall(jsonValueSchema).prefault({}),
   goals: z.object({
-    objectives: z.array(z.string().max(500)).default([]),
-    successMetrics: z.array(z.string().max(500)).default([]),
-    timeframes: z.array(z.string().max(200)).default([]),
+    objectives: normalizedStringList(500),
+    successMetrics: normalizedStringList(500),
+    timeframes: normalizedStringList(200),
   }).catchall(jsonValueSchema).prefault({}),
   constraints: z.object({
-    compliance: z.array(z.string().max(500)).default([]),
-    policies: z.array(z.string().max(500)).default([]),
-    resourceLimits: z.array(z.string().max(500)).default([]),
-    riskFlags: z.array(z.string().max(500)).default([]),
+    compliance: normalizedStringList(500),
+    policies: normalizedStringList(500),
+    resourceLimits: normalizedStringList(500),
+    riskFlags: normalizedStringList(500),
   }).catchall(jsonValueSchema).prefault({}),
   automation: z.object({
-    opportunities: z.array(z.string().max(500)).default([]),
-    manualSteps: z.array(z.string().max(500)).default([]),
-    triggers: z.array(z.string().max(500)).default([]),
+    opportunities: normalizedStringList(500),
+    manualSteps: normalizedStringList(500),
+    triggers: normalizedStringList(500),
   }).catchall(jsonValueSchema).prefault({}),
   metadata: z.object({
     confidence: z.number().min(0).max(1).default(0),
-    domainsCovered: z.array(z.string().max(100)).default([]),
+    domainsCovered: normalizedStringList(100),
     reviewState: z.enum(["draft", "reviewed"]).default("draft"),
   }).catchall(jsonValueSchema).prefault({}),
 }).passthrough();

@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 import { createSupabaseAdminClient, createSupabaseServerClient } from "@/lib/supabase/server";
 import { slugify } from "@/lib/api";
 
-const allowedDestinations = new Set(["/onboarding", "/dashboard"]);
+const allowedDestinations = new Set(["/onboarding", "/system-builder", "/dashboard"]);
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
-  const requestedNext = url.searchParams.get("next") ?? "/onboarding";
-  const next = allowedDestinations.has(requestedNext) ? requestedNext : "/onboarding";
+  const requestedNext = url.searchParams.get("next") ?? "/system-builder";
+  const next = allowedDestinations.has(requestedNext) ? requestedNext : "/system-builder";
 
   if (url.searchParams.get("error")) {
     return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent("Google sign-in was cancelled or could not be completed.")}`, url.origin));

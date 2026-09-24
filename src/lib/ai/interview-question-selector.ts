@@ -62,11 +62,13 @@ function isQuestionRedundant(
   facts: NormalizedBusinessFacts,
   answers: Map<string, InterviewAnswer>,
 ): boolean {
+  const answer = answers.get(question.key);
+  if (hasMeaningfulAnswer(answer)) return true;
+
   const targetPaths = getMetadata(question).targetPaths;
   if (targetPaths.length > 0 && pathsHaveEvidence(facts, targetPaths)) return true;
 
-  const answer = answers.get(question.key);
-  return hasMeaningfulAnswer(answer) && targetPaths.length === 0;
+  return false;
 }
 
 function missingTargetCount(

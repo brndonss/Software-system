@@ -7,6 +7,12 @@ export const capabilityRegistry = {
   communication: ["email", "notification"],
   scheduling: ["calendar"],
   analytics: ["reports", "dashboards"],
+  integrationProviders: ["email", "calendar", "analytics"],
+  integrationCapabilities: ["notification", "calendar", "reports", "dashboards"],
+  reportFilterOperators: ["equals", "not_equals", "contains", "starts_with", "greater_than", "greater_than_or_equal", "less_than", "less_than_or_equal", "is_empty", "is_not_empty", "in"],
+  reportAggregations: ["count", "sum", "average", "min", "max"],
+  reportSortDirections: ["asc", "desc"],
+  reportVisualizations: ["table", "number", "bar", "line"],
   ai: ["retrieval", "tool_calling", "workflow_execution"],
   agentTools: ["read_customer_data", "search_records", "update_record", "create_task", "notify_team", "escalate_exception"],
 } as const;

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { jsonError } from "@/lib/api";
 import { resolveCustomerIdFromSession } from "@/lib/business/module-helpers";
 import {
@@ -29,6 +30,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ ses
   } catch (error) {
     if (error instanceof InterviewSessionNotFoundError) return jsonError("Onboarding session not found", 404, "session_not_found");
     if (error instanceof InterviewScopeError) return jsonError("You cannot access this onboarding session", 403, "forbidden");
+    if (error instanceof z.ZodError) return jsonError("Saved onboarding data is invalid. Please start a new interview session.", 422, "invalid_interview_state");
     return jsonError("Unable to determine the next onboarding question", 500, "next_question_failed");
   }
 }

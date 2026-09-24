@@ -68,10 +68,10 @@ export default function AuthExperience({ mode, embedded = false, onClose, onMode
     const onboarding = await fetch("/api/v1/onboarding");
     if (onboarding.ok) {
       const onboardingData = await onboarding.json() as { onboarding?: { status?: string } };
-      router.push(onboardingData.onboarding?.status === "completed" ? "/dashboard" : "/onboarding");
+      router.push(onboardingData.onboarding?.status === "completed" ? "/dashboard" : "/system-builder");
       return;
     }
-    router.push(isSignup ? "/onboarding" : "/dashboard");
+    router.push(isSignup ? "/system-builder" : "/dashboard");
   }
 
   async function continueWithGoogle() {
@@ -81,7 +81,7 @@ export default function AuthExperience({ mode, embedded = false, onClose, onMode
       const supabase = createSupabaseBrowserClient();
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: `${window.location.origin}/auth/callback?next=${isSignup ? "/onboarding" : "/dashboard"}` },
+        options: { redirectTo: `${window.location.origin}/auth/callback?next=${isSignup ? "/system-builder" : "/dashboard"}` },
       });
       if (oauthError) throw oauthError;
     } catch (caught) {
